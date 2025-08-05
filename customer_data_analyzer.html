@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Data Analyzer - Exact Python Match</title>
+    <title>Customer Data Analyzer - created by Stephen Clarke</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
@@ -494,6 +494,7 @@
             <div id="converterSubmenu" class="converter-submenu">
                 <div class="submenu-item" onclick="window.open('Classic_to_TG_Billing_format_converter.html', '_blank')">MS Classic (EMEA)</div>
                 <div class="submenu-item" onclick="window.open('csv_to_xlsx_converter.html', '_blank')">TG / Classic CSV (US)</div>
+                <div class="submenu-item" onclick="window.open('id_name_extractor.html', '_blank')">MS Classic (EMEA) Customer List</div>
             </div>
         </div>
     </div>
@@ -1596,7 +1597,8 @@ async function handleXrefFile(file) {
             // Parse Excel
             const workbook = XLSX.read(fileData, { type: 'array' });
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            data = XLSX.utils.sheet_to_json(firstSheet);
+            // Use defval: '' to ensure empty cells are included as empty strings
+            data = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
         }
         
         // Validate the data has required columns
@@ -1605,20 +1607,45 @@ async function handleXrefFile(file) {
         }
         
         const firstRow = data[0];
-        const hasID = 'ID' in firstRow || 'id' in firstRow || 'Id' in firstRow;
-        const hasName = 'Name' in firstRow || 'name' in firstRow || 'NAME' in firstRow;
-        const hasRegion = 'Region' in firstRow || 'region' in firstRow || 'REGION' in firstRow;
+        console.log('First row of cross-reference data:', firstRow);
+        console.log('All column names:', Object.keys(firstRow));
         
-        if (!hasID || !hasName || !hasRegion) {
-            throw new Error('Cross-reference file must contain ID, Name, and Region columns');
+        // Find columns case-insensitively
+        const columns = Object.keys(firstRow);
+        let idColumn = null, nameColumn = null, regionColumn = null;
+        
+        columns.forEach(col => {
+            const colLower = col.toLowerCase();
+            if (!idColumn && colLower === 'id') idColumn = col;
+            if (!nameColumn && colLower === 'name') nameColumn = col;
+            if (!regionColumn && colLower === 'region') regionColumn = col;
+        });
+        
+        // Also check for common variations
+        if (!idColumn) {
+            idColumn = columns.find(col => /^(tp_?)?id$/i.test(col)) || 
+                      columns.find(col => /^trading_?partner_?id$/i.test(col)) ||
+                      columns.find(col => /^hub_?id$/i.test(col));
+        }
+        
+        if (!idColumn || !nameColumn || !regionColumn) {
+            const missingCols = [];
+            if (!idColumn) missingCols.push('ID');
+            if (!nameColumn) missingCols.push('Name');
+            if (!regionColumn) missingCols.push('Region');
+            
+            console.error('Missing columns:', missingCols);
+            console.error('Available columns:', columns);
+            
+            throw new Error(`Cross-reference file must contain ID, Name, and Region columns. Missing: ${missingCols.join(', ')}. Found columns: ${columns.join(', ')}`);
         }
         
         // Build the cross-reference map
         window.idCrossReference = {};
         data.forEach(row => {
-            const id = String(row.ID || row.id || row.Id || '').trim();
-            const name = String(row.Name || row.name || row.NAME || '').trim();
-            const region = String(row.Region || row.region || row.REGION || '').trim();
+            const id = String(row[idColumn] || '').trim();
+            const name = String(row[nameColumn] || '').trim();
+            const region = String(row[regionColumn] || '').trim();
             
             if (id) {
                 window.idCrossReference[id] = {
@@ -3362,6 +3389,21 @@ The data shows operational activity patterns across multiple dimensions...`;
         }
     </style>
     <script>
+        // Helper function to check for cross-reference data
+        function hasCrossReference() {
+            return window.idCrossReference && Object.keys(window.idCrossReference).length > 0;
+        }
+        
+        // Helper function to get cross-reference data from parent or local
+        function getCrossReference() {
+            if (window.idCrossReference) {
+                return window.idCrossReference;
+            } else if (window.parent && window.parent.idCrossReference) {
+                return window.parent.idCrossReference;
+            }
+            return null;
+        }
+        
         function showTab(tabName) {
             // Hide all tab contents
             const contents = document.querySelectorAll('.tab-content');
@@ -3591,6 +3633,22 @@ The data shows operational activity patterns across multiple dimensions...`;
                     }
                 });
             }
+            
+            // Initialize display modes for all tables to 'id' by default
+            const tableIds = [
+                'tp-performance-table', 'hubPerformanceTable', 'hubDocsMonthlyTable',
+                'hubKCsMonthlyTable', 'tp-doc-volume-table', 'tp-doc-types-table',
+                'tp-seasonality-table', 'doc-tp-volume-table', 'tp-doc-matrix-table'
+            ];
+            
+            tableIds.forEach(tableId => {
+                if (document.getElementById(tableId)) {
+                    // Set default display mode if not already set
+                    if (!window.tableDisplayModes[tableId]) {
+                        window.tableDisplayModes[tableId] = 'id';
+                    }
+                }
+            });
         }
         
         // TP-Document Type Matrix filter functions
@@ -3851,6 +3909,27 @@ The data shows operational activity patterns across multiple dimensions...`;
             })}</p>
         </div>
     </div>
+    
+    <script>
+    // Embed cross-reference data if available
+    ${window.idCrossReference ? `
+    window.idCrossReference = ${JSON.stringify(window.idCrossReference)};
+    ` : ''}
+    
+    // Ensure all ID/Name/Region filter buttons are visible in saved reports
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.idCrossReference) {
+            // Show all display mode filters that were hidden due to parent window checks
+            const filterContainers = document.querySelectorAll('.display-mode-btn, .hub-chart-display-btn, .hub-trend-display-btn, .partner-concentration-display-btn');
+            filterContainers.forEach(btn => {
+                const container = btn.closest('div[style*="background: #f3f4f6"]');
+                if (container && container.parentElement) {
+                    container.parentElement.style.display = '';
+                }
+            });
+        }
+    });
+    </scr` + `ipt>
 </body>
 </html>`;
         
@@ -5727,7 +5806,10 @@ The data shows operational activity patterns across multiple dimensions...`;
         
         const path = `M ${points.join(' L ')}`;
         
-        return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><path d="${path}" fill="none" stroke="${color}" stroke-width="2" opacity="0.8"/><circle cx="${padding + (data.length - 1) / (data.length - 1) * (width - 2 * padding)}" cy="${height - padding - ((data[data.length - 1] - min) / range) * (height - 2 * padding)}" r="3" fill="${color}"/></svg>`;
+        const cx = padding + (data.length - 1) / (data.length - 1) * (width - 2 * padding);
+        const cy = height - padding - ((data[data.length - 1] - min) / range) * (height - 2 * padding);
+        
+        return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><path d="${path}" fill="none" stroke="${color}" stroke-width="2" opacity="0.8"/><circle cx="${cx}" cy="${cy}" r="3" fill="${color}"/></svg>`;
     }
     
     generateBestWorstPerformers(data, currentPeriod, prevPeriod) {
@@ -5913,7 +5995,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                     ">📥 Export CSV</button>
                     
                     <!-- ID Display Filter -->
-                    ${window.parent && window.parent.idCrossReference ? `
+                    ${window.idCrossReference ? `
                     <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px; margin-left: auto;">
                         <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
                         <button onclick="setTPDisplayMode('id', 'tp-performance-table')" 
@@ -6202,42 +6284,57 @@ The data shows operational activity patterns across multiple dimensions...`;
         };
         
         // ID Display Mode Functions
+        // Store display modes per table
+        window.tableDisplayModes = {};
+        
         window.setTPDisplayMode = function(mode, tableId) {
             const table = document.getElementById(tableId);
             if (!table) return;
             
-            // Update button states
-            const container = table.closest('div');
-            let buttons = container ? container.querySelectorAll('.display-mode-btn') : [];
+            // Store the display mode for this specific table
+            window.tableDisplayModes[tableId] = mode;
             
-            // If no buttons found in immediate container, search more broadly
-            if (buttons.length === 0) {
-                const allContainers = document.querySelectorAll('div');
-                for (let div of allContainers) {
-                    if (div.contains(table)) {
-                        const testButtons = div.querySelectorAll('.display-mode-btn');
-                        if (testButtons.length > 0) {
-                            buttons = testButtons;
-                            break;
-                        }
+            // Find the button container for THIS specific table
+            let buttonContainer = null;
+            let currentElement = table;
+            
+            // Search upward from the table to find its specific button container
+            while (currentElement && currentElement !== document.body) {
+                // Look for display mode buttons in the current element
+                const buttons = currentElement.querySelectorAll('.display-mode-btn');
+                if (buttons.length > 0) {
+                    // Check if these buttons are associated with this table
+                    // by verifying the onclick contains this tableId
+                    const firstButton = buttons[0];
+                    const onclickAttr = firstButton.getAttribute('onclick');
+                    if (onclickAttr && onclickAttr.includes(tableId)) {
+                        buttonContainer = currentElement;
+                        break;
                     }
                 }
+                currentElement = currentElement.parentElement;
             }
             
-            buttons.forEach(btn => {
-                if (btn.getAttribute('data-mode') === mode) {
-                    btn.style.background = '#3b82f6';
-                    btn.style.color = 'white';
-                } else {
-                    btn.style.background = 'transparent';
-                    btn.style.color = '#6b7280';
-                }
-            });
+            // Update only the buttons for this specific table
+            if (buttonContainer) {
+                const buttons = buttonContainer.querySelectorAll('.display-mode-btn');
+                buttons.forEach(btn => {
+                    // Only update buttons that belong to this table
+                    const onclickAttr = btn.getAttribute('onclick');
+                    if (onclickAttr && onclickAttr.includes(tableId)) {
+                        if (btn.getAttribute('data-mode') === mode) {
+                            btn.style.background = '#3b82f6';
+                            btn.style.color = 'white';
+                        } else {
+                            btn.style.background = 'transparent';
+                            btn.style.color = '#6b7280';
+                        }
+                    }
+                });
+            }
             
             // Get cross-reference data from parent window if in iframe, otherwise use local
-            const crossRef = window.parent && window.parent.idCrossReference ? 
-                            window.parent.idCrossReference : 
-                            window.idCrossReference;
+            const crossRef = getCrossReference();
             
             // Update cell displays
             const cells = table.querySelectorAll('.tp-id-cell');
@@ -6866,6 +6963,55 @@ The data shows operational activity patterns across multiple dimensions...`;
         html += `
         <div style="margin-top: 30px;">
             <h4 style="color: #2d3748; margin-bottom: 20px; font-size: 1.1em;">📊 Hub Distribution Analysis</h4>
+            
+            <!-- Display Mode Filter for Charts -->
+            ${window.idCrossReference ? `
+            <div style="margin-bottom: 15px; display: flex; justify-content: flex-end;">
+                <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px;">
+                    <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
+                    <button onclick="setHubChartDisplayMode('id')" 
+                        class="hub-chart-display-btn" 
+                        data-mode="id"
+                        style="
+                            padding: 6px 12px;
+                            background: #3b82f6;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.85em;
+                            transition: all 0.2s;
+                        ">ID</button>
+                    <button onclick="setHubChartDisplayMode('name')" 
+                        class="hub-chart-display-btn" 
+                        data-mode="name"
+                        style="
+                            padding: 6px 12px;
+                            background: transparent;
+                            color: #6b7280;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.85em;
+                            transition: all 0.2s;
+                        ">Name</button>
+                    <button onclick="setHubChartDisplayMode('region')" 
+                        class="hub-chart-display-btn" 
+                        data-mode="region"
+                        style="
+                            padding: 6px 12px;
+                            background: transparent;
+                            color: #6b7280;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.85em;
+                            transition: all 0.2s;
+                        ">Region</button>
+                </div>
+            </div>
+            ` : ''}
+            
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
                 <!-- Document Distribution Chart -->
                 <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(249, 250, 251, 0.5) 100%); backdrop-filter: blur(10px); border: 1px solid rgba(229, 231, 235, 0.4); padding: 20px; border-radius: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);">
@@ -6890,6 +7036,54 @@ The data shows operational activity patterns across multiple dimensions...`;
         <div style="margin-top: 30px;">
             <h4 style="color: #2d3748; margin-bottom: 20px; font-size: 1.1em;">📈 Hub Trend Analysis</h4>
             
+            <!-- Display Mode Filter -->
+            ${window.idCrossReference ? `
+            <div style="margin-bottom: 15px; display: flex; justify-content: flex-end;">
+                <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px;">
+                    <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
+                    <button onclick="setHubTrendDisplayMode('id')" 
+                        class="hub-trend-display-btn" 
+                        data-mode="id"
+                        style="
+                            padding: 6px 12px;
+                            background: #3b82f6;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.85em;
+                            transition: all 0.2s;
+                        ">ID</button>
+                    <button onclick="setHubTrendDisplayMode('name')" 
+                        class="hub-trend-display-btn" 
+                        data-mode="name"
+                        style="
+                            padding: 6px 12px;
+                            background: transparent;
+                            color: #6b7280;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.85em;
+                            transition: all 0.2s;
+                        ">Name</button>
+                    <button onclick="setHubTrendDisplayMode('region')" 
+                        class="hub-trend-display-btn" 
+                        data-mode="region"
+                        style="
+                            padding: 6px 12px;
+                            background: transparent;
+                            color: #6b7280;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.85em;
+                            transition: all 0.2s;
+                        ">Region</button>
+                </div>
+            </div>
+            ` : ''}
+            
             <!-- Filter Controls -->
             <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(249, 250, 251, 0.5) 100%); backdrop-filter: blur(10px); border: 1px solid rgba(229, 231, 235, 0.4); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
                 <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
@@ -6897,7 +7091,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                         <label style="font-size: 0.9em; color: #4b5563; margin-right: 10px;">Select Hubs:</label>
                         <select id="hubTrendFilter" multiple style="padding: 8px; border-radius: 6px; border: 1px solid #d1d5db; min-width: 200px; height: 100px;">
                             ${Object.keys(hubData.hubDetails).map(hubId => 
-                                `<option value="${hubId}" selected>${hubId}</option>`
+                                `<option value="${hubId}" selected data-hub-id="${hubId}">${hubId}</option>`
                             ).join('')}
                         </select>
                     </div>
@@ -7003,7 +7197,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                                 style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
                             Export to CSV
                         </button>
-                        ${window.parent && window.parent.idCrossReference ? `
+                        ${window.idCrossReference ? `
                         <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px; margin-left: 20px;">
                             <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
                             <button onclick="setTPDisplayMode('id', 'hubPerformanceTable')" 
@@ -7142,7 +7336,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                                 style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
                             Export to CSV
                         </button>
-                        ${window.parent && window.parent.idCrossReference ? `
+                        ${window.idCrossReference ? `
                         <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px; margin-left: 20px;">
                             <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
                             <button onclick="setTPDisplayMode('id', 'hubDocsMonthlyTable')" 
@@ -7256,7 +7450,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                                 style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
                             Export to CSV
                         </button>
-                        ${window.parent && window.parent.idCrossReference ? `
+                        ${window.idCrossReference ? `
                         <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px; margin-left: 20px;">
                             <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
                             <button onclick="setTPDisplayMode('id', 'hubKCsMonthlyTable')" 
@@ -7695,6 +7889,7 @@ The data shows operational activity patterns across multiple dimensions...`;
     generateHubDistributionCharts(hubData) {
         // Prepare data for charts
         const hubLabels = [];
+        const hubIds = []; // Store IDs separately for cross-reference
         const docData = [];
         const kcData = [];
         
@@ -7704,7 +7899,8 @@ The data shows operational activity patterns across multiple dimensions...`;
             .slice(0, 10);
         
         sortedHubs.forEach(hub => {
-            hubLabels.push(hub.id);
+            hubIds.push(hub.id);
+            hubLabels.push(hub.id); // Default to ID display
             docData.push(hub.docs);
             kcData.push(hub.kcs);
         });
@@ -7715,6 +7911,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             const othersKc = hubData.totalKCs - kcData.reduce((sum, val) => sum + val, 0);
             
             if (othersDoc > 0) {
+                hubIds.push('Others');
                 hubLabels.push('Others');
                 docData.push(othersDoc);
                 kcData.push(othersKc);
@@ -7737,12 +7934,71 @@ The data shows operational activity patterns across multiple dimensions...`;
         ];
         
         return `
-        <script>
+        <scr` + `ipt>
+        // Store hub chart data globally for updates
+        window.hubChartData = {
+            hubIds: ${JSON.stringify(hubIds)},
+            docData: ${JSON.stringify(docData)},
+            kcData: ${JSON.stringify(kcData)},
+            colors: ${JSON.stringify(colors.slice(0, hubLabels.length))},
+            displayMode: 'id',
+            charts: {}
+        };
+        
+        // Function to update hub charts based on display mode
+        window.setHubChartDisplayMode = function(mode) {
+            // Update button states
+            const buttons = document.querySelectorAll('.hub-chart-display-btn');
+            buttons.forEach(btn => {
+                if (btn.getAttribute('data-mode') === mode) {
+                    btn.style.background = '#3b82f6';
+                    btn.style.color = 'white';
+                } else {
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#6b7280';
+                }
+            });
+            
+            // Store the display mode
+            window.hubChartData.displayMode = mode;
+            
+            // Get cross-reference data
+            const crossRef = getCrossReference();
+            
+            if (!crossRef) return;
+            
+            // Update chart labels based on mode
+            const newLabels = window.hubChartData.hubIds.map(id => {
+                if (id === 'Others') return 'Others';
+                
+                if (crossRef[id]) {
+                    const xref = crossRef[id];
+                    if (mode === 'name' && xref.name) {
+                        return xref.name;
+                    } else if (mode === 'region' && xref.region) {
+                        return xref.region;
+                    }
+                }
+                return id;
+            });
+            
+            // Update both charts
+            if (window.hubChartData.charts.docChart) {
+                window.hubChartData.charts.docChart.data.labels = newLabels;
+                window.hubChartData.charts.docChart.update();
+            }
+            
+            if (window.hubChartData.charts.kcChart) {
+                window.hubChartData.charts.kcChart.data.labels = newLabels;
+                window.hubChartData.charts.kcChart.update();
+            }
+        };
+        
         setTimeout(() => {
             // Document Distribution Pie Chart
             const docCtx = document.getElementById('hubDocDistributionChart');
             if (docCtx) {
-                new Chart(docCtx.getContext('2d'), {
+                window.hubChartData.charts.docChart = new Chart(docCtx.getContext('2d'), {
                     type: 'pie',
                     data: {
                         labels: ${JSON.stringify(hubLabels)},
@@ -7803,7 +8059,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             // KC Distribution Pie Chart
             const kcCtx = document.getElementById('hubKcDistributionChart');
             if (kcCtx) {
-                new Chart(kcCtx.getContext('2d'), {
+                window.hubChartData.charts.kcChart = new Chart(kcCtx.getContext('2d'), {
                     type: 'pie',
                     data: {
                         labels: ${JSON.stringify(hubLabels)},
@@ -7893,9 +8149,58 @@ The data shows operational activity patterns across multiple dimensions...`;
         };
         
         return `
-        <script>
+        <scr` + `ipt>
         // Store hub data for filter updates
         window.hubTrendData = ${JSON.stringify(globalHubData)};
+        window.hubTrendDisplayMode = 'id';
+        
+        // Function to update hub trend display mode
+        window.setHubTrendDisplayMode = function(mode) {
+            // Update button states
+            const buttons = document.querySelectorAll('.hub-trend-display-btn');
+            buttons.forEach(btn => {
+                if (btn.getAttribute('data-mode') === mode) {
+                    btn.style.background = '#3b82f6';
+                    btn.style.color = 'white';
+                } else {
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#6b7280';
+                }
+            });
+            
+            // Store the display mode
+            window.hubTrendDisplayMode = mode;
+            
+            // Get cross-reference data
+            const crossRef = getCrossReference();
+            
+            if (!crossRef) return;
+            
+            // Update dropdown options
+            const filter = document.getElementById('hubTrendFilter');
+            if (filter) {
+                const selectedValues = Array.from(filter.selectedOptions).map(opt => opt.value);
+                
+                Array.from(filter.options).forEach(option => {
+                    const hubId = option.getAttribute('data-hub-id');
+                    let displayText = hubId;
+                    
+                    if (crossRef[hubId]) {
+                        const xref = crossRef[hubId];
+                        if (mode === 'name' && xref.name) {
+                            displayText = xref.name;
+                        } else if (mode === 'region' && xref.region) {
+                            displayText = xref.region;
+                        }
+                    }
+                    
+                    option.textContent = displayText;
+                });
+            }
+            
+            // Update charts if they exist
+            updateHubTrendCharts();
+        };
         
         function updateHubTrendCharts() {
             const selectedHubs = Array.from(document.getElementById('hubTrendFilter').selectedOptions).map(opt => opt.value);
@@ -7904,6 +8209,9 @@ The data shows operational activity patterns across multiple dimensions...`;
                 alert('Please select at least one hub');
                 return;
             }
+            
+            // Get cross-reference data for labels
+            const crossRef = getCrossReference();
             
             // Update Document Trend Chart
             const docChart = Chart.getChart('hubDocTrendChart');
@@ -7914,8 +8222,19 @@ The data shows operational activity patterns across multiple dimensions...`;
                         window.hubTrendData.periodData[hubId][period].docs : 0
                     );
                     
+                    // Determine label based on display mode
+                    let label = hubId;
+                    if (crossRef && crossRef[hubId] && window.hubTrendDisplayMode) {
+                        const xref = crossRef[hubId];
+                        if (window.hubTrendDisplayMode === 'name' && xref.name) {
+                            label = xref.name;
+                        } else if (window.hubTrendDisplayMode === 'region' && xref.region) {
+                            label = xref.region;
+                        }
+                    }
+                    
                     return {
-                        label: hubId,
+                        label: label,
                         data: data,
                         borderColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length],
                         backgroundColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length].replace('0.8', '0.2'),
@@ -7937,8 +8256,19 @@ The data shows operational activity patterns across multiple dimensions...`;
                         window.hubTrendData.periodData[hubId][period].kcs : 0
                     );
                     
+                    // Determine label based on display mode (same as doc chart)
+                    let label = hubId;
+                    if (crossRef && crossRef[hubId] && window.hubTrendDisplayMode) {
+                        const xref = crossRef[hubId];
+                        if (window.hubTrendDisplayMode === 'name' && xref.name) {
+                            label = xref.name;
+                        } else if (window.hubTrendDisplayMode === 'region' && xref.region) {
+                            label = xref.region;
+                        }
+                    }
+                    
                     return {
-                        label: hubId,
+                        label: label,
                         data: data,
                         borderColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length],
                         backgroundColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length].replace('0.8', '0.2'),
@@ -8114,7 +8444,7 @@ The data shows operational activity patterns across multiple dimensions...`;
     // REMOVED: generateHubNetworkScript
     generateHubNetworkScript(hubData) {
         return `
-        <script>
+        <scr` + `ipt>
         setTimeout(() => {
             // Hub Volume Chart
             const volumeCtx = document.getElementById('hubVolumeChart');
@@ -9694,7 +10024,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                     " onmouseover="this.style.background='#15803d'" onmouseout="this.style.background='#16a34a'">
                         📥 Export CSV
                     </button>
-                    ${window.parent && window.parent.idCrossReference ? `
+                    ${window.idCrossReference ? `
                     <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px; margin-left: 20px;">
                         <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
                         <button onclick="setTPDisplayMode('id', 'tp-doc-volume-table')" 
@@ -9847,7 +10177,53 @@ The data shows operational activity patterns across multiple dimensions...`;
                         </div>
                     </span>
                 </div>
-                <table class="tp-table">
+                ${window.idCrossReference ? `
+                <div style="margin-bottom: 10px; display: flex; justify-content: flex-end;">
+                    <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px;">
+                        <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
+                        <button onclick="setTPDisplayMode('id', 'tp-growing-table')" 
+                            class="display-mode-btn display-mode-id" 
+                            data-mode="id"
+                            style="
+                                padding: 6px 12px;
+                                border: none;
+                                background: #3b82f6;
+                                color: white;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.85em;
+                                transition: all 0.2s;
+                            ">ID</button>
+                        <button onclick="setTPDisplayMode('name', 'tp-growing-table')" 
+                            class="display-mode-btn display-mode-name" 
+                            data-mode="name"
+                            style="
+                                padding: 6px 12px;
+                                border: none;
+                                background: transparent;
+                                color: #6b7280;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.85em;
+                                transition: all 0.2s;
+                            ">Name</button>
+                        <button onclick="setTPDisplayMode('region', 'tp-growing-table')" 
+                            class="display-mode-btn display-mode-region" 
+                            data-mode="region"
+                            style="
+                                padding: 6px 12px;
+                                border: none;
+                                background: transparent;
+                                color: #6b7280;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.85em;
+                                transition: all 0.2s;
+                            ">Region</button>
+                    </div>
+                </div>
+                ` : ''}
+                <table class="tp-table" id="tp-growing-table">
                     <thead>
                         <tr>
                             <th>TP ID</th>
@@ -9890,7 +10266,53 @@ The data shows operational activity patterns across multiple dimensions...`;
                         </div>
                     </span>
                 </div>
-                <table class="tp-table">
+                ${window.idCrossReference ? `
+                <div style="margin-bottom: 10px; display: flex; justify-content: flex-end;">
+                    <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px;">
+                        <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
+                        <button onclick="setTPDisplayMode('id', 'tp-declining-table')" 
+                            class="display-mode-btn display-mode-id" 
+                            data-mode="id"
+                            style="
+                                padding: 6px 12px;
+                                border: none;
+                                background: #3b82f6;
+                                color: white;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.85em;
+                                transition: all 0.2s;
+                            ">ID</button>
+                        <button onclick="setTPDisplayMode('name', 'tp-declining-table')" 
+                            class="display-mode-btn display-mode-name" 
+                            data-mode="name"
+                            style="
+                                padding: 6px 12px;
+                                border: none;
+                                background: transparent;
+                                color: #6b7280;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.85em;
+                                transition: all 0.2s;
+                            ">Name</button>
+                        <button onclick="setTPDisplayMode('region', 'tp-declining-table')" 
+                            class="display-mode-btn display-mode-region" 
+                            data-mode="region"
+                            style="
+                                padding: 6px 12px;
+                                border: none;
+                                background: transparent;
+                                color: #6b7280;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.85em;
+                                transition: all 0.2s;
+                            ">Region</button>
+                    </div>
+                </div>
+                ` : ''}
+                <table class="tp-table" id="tp-declining-table">
                     <thead>
                         <tr>
                             <th>TP ID</th>
@@ -10158,7 +10580,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                     " onmouseover="this.style.background='#15803d'" onmouseout="this.style.background='#16a34a'">
                         📥 Export CSV
                     </button>
-                    ${window.parent && window.parent.idCrossReference ? `
+                    ${window.idCrossReference ? `
                     <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px; margin-left: 20px;">
                         <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
                         <button onclick="setTPDisplayMode('id', 'tp-doc-types-table')" 
@@ -10319,7 +10741,53 @@ The data shows operational activity patterns across multiple dimensions...`;
             
             <!-- Partner Distribution Chart -->
             <div style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(249, 250, 251, 0.5) 100%); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(229, 231, 235, 0.4); padding: 25px; border-radius: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05); margin-bottom: 25px;">
-                <h4 style="margin: 0 0 20px 0; color: #1e293b; font-weight: 600;">Partner Concentration Analysis</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h4 style="margin: 0; color: #1e293b; font-weight: 600;">Partner Concentration Analysis</h4>
+                    ${window.idCrossReference ? `
+                    <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px;">
+                        <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
+                        <button onclick="setPartnerConcentrationDisplayMode('id')" 
+                            class="partner-concentration-display-btn" 
+                            data-mode="id"
+                            style="
+                                padding: 6px 12px;
+                                background: #3b82f6;
+                                color: white;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.85em;
+                                transition: all 0.2s;
+                            ">ID</button>
+                        <button onclick="setPartnerConcentrationDisplayMode('name')" 
+                            class="partner-concentration-display-btn" 
+                            data-mode="name"
+                            style="
+                                padding: 6px 12px;
+                                background: transparent;
+                                color: #6b7280;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.85em;
+                                transition: all 0.2s;
+                            ">Name</button>
+                        <button onclick="setPartnerConcentrationDisplayMode('region')" 
+                            class="partner-concentration-display-btn" 
+                            data-mode="region"
+                            style="
+                                padding: 6px 12px;
+                                background: transparent;
+                                color: #6b7280;
+                                border: none;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 0.85em;
+                                transition: all 0.2s;
+                            ">Region</button>
+                    </div>
+                    ` : ''}
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
                     <div style="background: rgba(255, 255, 255, 0.6); padding: 15px; border-radius: 8px; border: 1px solid rgba(229, 231, 235, 0.3);">
                         <canvas id="partnerConcentrationChart" width="300" height="300"></canvas>
@@ -10335,34 +10803,93 @@ The data shows operational activity patterns across multiple dimensions...`;
         </div>`;
         
         // Add script for the pie chart
-        html += `<script>
+        html += `<scr` + `ipt>
+        // Store partner concentration data globally
+        window.partnerConcentrationData = {
+            sortedTPData: ${JSON.stringify(sortedTPs.slice(0, 5).map(([id, tp]) => ({
+                id: id,
+                docs: tp.total_docs
+            })))},
+            totalDocs: ${totalDocs},
+            displayMode: 'id',
+            chart: null
+        };
+        
+        // Function to update partner concentration display mode
+        window.setPartnerConcentrationDisplayMode = function(mode) {
+            // Update button states
+            const buttons = document.querySelectorAll('.partner-concentration-display-btn');
+            buttons.forEach(btn => {
+                if (btn.getAttribute('data-mode') === mode) {
+                    btn.style.background = '#3b82f6';
+                    btn.style.color = 'white';
+                } else {
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#6b7280';
+                }
+            });
+            
+            // Store the display mode
+            window.partnerConcentrationData.displayMode = mode;
+            
+            // Get cross-reference data
+            const crossRef = getCrossReference();
+            
+            if (!crossRef || !window.partnerConcentrationData.chart) return;
+            
+            // Update chart labels based on mode
+            const newLabels = [];
+            window.partnerConcentrationData.sortedTPData.forEach(tp => {
+                let label = tp.id;
+                if (crossRef[tp.id]) {
+                    const xref = crossRef[tp.id];
+                    if (mode === 'name' && xref.name) {
+                        label = xref.name;
+                    } else if (mode === 'region' && xref.region) {
+                        label = xref.region;
+                    }
+                }
+                newLabels.push(label);
+            });
+            
+            // Add "Others" if it exists
+            const chartData = window.partnerConcentrationData.chart.data;
+            if (chartData.labels.length > newLabels.length) {
+                newLabels.push('Others');
+            }
+            
+            // Update the chart
+            window.partnerConcentrationData.chart.data.labels = newLabels;
+            window.partnerConcentrationData.chart.update();
+        };
+        
         setTimeout(() => {
             const ctx = document.getElementById('partnerConcentrationChart');
             if (ctx) {
-                // Data passed from the server
-                const sortedTPData = ${JSON.stringify(sortedTPs.slice(0, 5).map(([id, tp]) => ({
-                    id: id,
-                    docs: tp.total_docs
-                })))};
-                const totalDocs = ${totalDocs};
+                // Data from global storage
+                const sortedTPData = window.partnerConcentrationData.sortedTPData;
+                const totalDocs = window.partnerConcentrationData.totalDocs;
                 
                 // Calculate partner segments
                 const top5Data = [];
                 const top5Labels = [];
+                const top5Ids = [];
                 let top5Total = 0;
                 
                 sortedTPData.forEach(tp => {
                     top5Data.push(tp.docs);
                     top5Labels.push(tp.id);
+                    top5Ids.push(tp.id);
                     top5Total += tp.docs;
                 });
                 
                 if (totalDocs - top5Total > 0) {
                     top5Data.push(totalDocs - top5Total);
                     top5Labels.push('Others');
+                    top5Ids.push('Others');
                 }
                 
-                new Chart(ctx.getContext('2d'), {
+                window.partnerConcentrationData.chart = new Chart(ctx.getContext('2d'), {
                     type: 'doughnut',
                     data: {
                         labels: top5Labels,
@@ -10506,7 +11033,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 </span>
             </h4>
             <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                ${window.parent && window.parent.idCrossReference ? `
+                ${window.idCrossReference ? `
                 <div style="margin-bottom: 10px; display: flex; justify-content: flex-end;">
                     <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px;">
                         <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
@@ -11551,7 +12078,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                         </div>
                     </span>
                 </h4>
-                ${window.parent && window.parent.idCrossReference ? `
+                ${window.idCrossReference ? `
                 <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px;">
                     <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
                     <button onclick="setTPDisplayMode('id', 'doc-tp-volume-table')" 
@@ -11876,7 +12403,7 @@ The data shows operational activity patterns across multiple dimensions...`;
         const yearArray = Array.from(availableYears).sort();
         const showYearFilter = yearArray.length > 1;
         
-        html += `<script>
+        html += `<scr` + `ipt>
         setTimeout(() => {
             // Forecast Chart
             const forecastCtx = document.getElementById('forecastChart');
@@ -11956,19 +12483,18 @@ The data shows operational activity patterns across multiple dimensions...`;
             const yearArray = ${JSON.stringify(yearArray).replace(/</g, '\\u003c')};
             
             if (filterContainer && showYearFilter) {
-                filterContainer.innerHTML = \`
-                    <label style="font-weight: 500; color: #374151; margin-right: 10px;">Year Filter:</label>
-                    <select id="docSeasonalityYearFilter" onchange="updateDocSeasonalityDisplay()" style="
-                        padding: 8px 12px;
-                        border: 1px solid #d1d5db;
-                        border-radius: 6px;
-                        background: white;
-                        color: #374151;
-                        font-size: 0.9em;
-                        cursor: pointer;">
-                        <option value="all">All Years Combined</option>
-                        \${yearArray.map(year => '<option value="' + year + '">' + year + '</option>').join('')}
-                    </select>\`;
+                filterContainer.innerHTML = '<label style="font-weight: 500; color: #374151; margin-right: 10px;">Year Filter:</label>' +
+                    '<select id="docSeasonalityYearFilter" onchange="updateDocSeasonalityDisplay()" style="' +
+                        'padding: 8px 12px;' +
+                        'border: 1px solid #d1d5db;' +
+                        'border-radius: 6px;' +
+                        'background: white;' +
+                        'color: #374151;' +
+                        'font-size: 0.9em;' +
+                        'cursor: pointer;">' +
+                        '<option value="all">All Years Combined</option>' +
+                        yearArray.map(year => '<option value="' + year + '">' + year + '</option>').join('') +
+                    '</select>';
             }
             
             // Store data globally for filter updates
@@ -12244,7 +12770,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                         " onmouseover="this.style.background='#15803d'" onmouseout="this.style.background='#16a34a'">
                             📥 Export CSV
                         </button>
-                        ${window.parent && window.parent.idCrossReference ? `
+                        ${window.idCrossReference ? `
                         <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px; margin-left: 20px;">
                             <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
                             <button onclick="setTPDisplayMode('id', 'tp-doc-matrix-table')" 

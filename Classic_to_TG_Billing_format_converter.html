@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MS Classic to TG Billing Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #fafafa;
+        }
+        .upload-area:hover {
+            border-color: #999;
+            background-color: #f0f0f0;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .upload-label {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .upload-label:hover {
+            background-color: #0056b3;
+        }
+        .files-list {
+            margin-top: 30px;
+        }
+        .file-item {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-info {
+            flex: 1;
+        }
+        .file-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .file-size {
+            color: #666;
+            font-size: 14px;
+        }
+        .file-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .convert-btn, .download-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .convert-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .convert-btn:hover {
+            background-color: #218838;
+        }
+        .convert-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .download-btn {
+            background-color: #17a2b8;
+            color: white;
+            display: none;
+        }
+        .download-btn:hover {
+            background-color: #138496;
+        }
+        .status {
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .status.processing {
+            color: #856404;
+        }
+        .status.success {
+            color: #155724;
+        }
+        .status.error {
+            color: #721c24;
+        }
+        .convert-all-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .convert-all-btn:hover {
+            background-color: #5a6268;
+        }
+        .convert-all-btn:disabled {
+            background-color: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+        .clear-btn {
+            margin-top: 20px;
+            margin-left: 10px;
+            padding: 12px 30px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .clear-btn:hover {
+            background-color: #c82333;
+        }
+        .download-all-btn {
+            margin-top: 20px;
+            margin-left: 10px;
+            padding: 12px 30px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .download-all-btn:hover {
+            background-color: #0056b3;
+        }
+        .download-all-btn:disabled {
+            background-color: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        /* Help menu styles */
+        .help-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 1000;
+            transition: background-color 0.3s;
+        }
+        
+        .help-button:hover {
+            background: #138496;
+        }
+        
+        .help-modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .help-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .close-help {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close-help:hover,
+        .close-help:focus {
+            color: black;
+        }
+        
+        .help-content h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        
+        .help-content h3 {
+            color: #555;
+            margin-top: 20px;
+        }
+        
+        .help-content ul {
+            line-height: 1.8;
+        }
+        
+        .help-content code {
+            background: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <!-- Help Button -->
+    <button class="help-button" onclick="showHelp()">Help</button>
+    
+    <!-- Help Modal -->
+    <div id="helpModal" class="help-modal">
+        <div class="help-content">
+            <span class="close-help" onclick="closeHelp()">&times;</span>
+            <h2>How to Use MS Classic to TG Billing Converter</h2>
+            
+            <h3>Overview</h3>
+            <p>This tool converts MS Classic CSV files to TG Billing format XLSX files. It processes multiple CSV files at once and generates properly formatted Excel files ready for TG Billing system import.</p>
+            
+            <h3>Step-by-Step Instructions</h3>
+            <ol>
+                <li><strong>Select Files:</strong> Click "Choose CSV Files" to select one or more MS Classic CSV files from your computer.</li>
+                <li><strong>Verify Files:</strong> The selected files will appear in the file list below. Each file shows its name and size.</li>
+                <li><strong>Convert:</strong> Click "Convert All to XLSX" to start the conversion process.</li>
+                <li><strong>Download:</strong> Once converted, each file will have a download link. Click to save the XLSX file.</li>
+                <li><strong>Download All:</strong> When 2 or more files are converted, a "Download All Files" button appears. Click it to download all converted files individually.</li>
+            </ol>
+            
+            <h3>Input File Requirements</h3>
+            <ul>
+                <li>Files must be in CSV format (.csv extension)</li>
+                <li>Files should contain MS Classic billing data</li>
+                <li>Column headers should match MS Classic format</li>
+                <li>UTF-8 encoding is recommended</li>
+            </ul>
+            
+            <h3>Output Format</h3>
+            <ul>
+                <li>Files are converted to XLSX (Excel 2007+) format</li>
+                <li>Original filename is preserved with .xlsx extension</li>
+                <li>Data formatting is adjusted for TG Billing compatibility</li>
+                <li>All sheets and columns are properly formatted</li>
+            </ul>
+            
+            <h3>Tips</h3>
+            <ul>
+                <li>You can select multiple files at once using Ctrl+Click (Windows) or Cmd+Click (Mac)</li>
+                <li>Use "Clear All" to remove all files and start over</li>
+                <li>Each file is processed independently - if one fails, others will still convert</li>
+                <li>Large files may take a moment to process</li>
+                <li>The "Download All Files" button automatically appears when you have 2 or more converted files</li>
+                <li>Files will be downloaded individually to avoid security warnings</li>
+            </ul>
+            
+            <h3>Troubleshooting</h3>
+            <ul>
+                <li><strong>File won't convert:</strong> Ensure the file is a valid CSV with proper formatting</li>
+                <li><strong>Download doesn't start:</strong> Check your browser's download settings and popup blocker</li>
+                <li><strong>Data looks incorrect:</strong> Verify the source CSV uses MS Classic format</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h1>MS Classic to TG Billing Converter</h1>
+        <div class="upload-area">
+            <label for="csvFiles" class="upload-label">Choose CSV Files</label>
+            <input type="file" id="csvFiles" accept=".csv" multiple>
+            <p style="margin-top: 15px; color: #666;">or drag and drop CSV files here</p>
+        </div>
+        
+        <div class="files-list" id="filesList"></div>
+        
+        <div style="text-align: center; display: none;" id="batchActions">
+            <button class="convert-all-btn" id="convertAllBtn">Convert Files to XLSX</button>
+            <button class="download-all-btn" id="downloadAllBtn" style="display: none;">Download All Files</button>
+            <button class="clear-btn" id="clearBtn">Clear All</button>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('csvFiles');
+        const uploadArea = document.querySelector('.upload-area');
+        const filesList = document.getElementById('filesList');
+        const batchActions = document.getElementById('batchActions');
+        const convertAllBtn = document.getElementById('convertAllBtn');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        
+        const filesData = new Map();
+        const convertedFiles = new Map();
+
+        // Event listeners
+        fileInput.addEventListener('change', handleFileSelect);
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('drop', handleFileDrop);
+        convertAllBtn.addEventListener('click', convertAllFiles);
+        downloadAllBtn.addEventListener('click', downloadAllAsZip);
+        clearBtn.addEventListener('click', clearAllFiles);
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function handleFileDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const files = Array.from(e.dataTransfer.files).filter(file => file.type === 'text/csv');
+            if (files.length > 0) {
+                processFiles(files);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                processFiles(files);
+            }
+        }
+
+        function processFiles(files) {
+            let filesToProcess = files.length;
+            let filesProcessed = 0;
+            
+            files.forEach(file => {
+                const fileId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    filesData.set(fileId, {
+                        name: file.name,
+                        size: file.size,
+                        content: e.target.result,
+                        converted: false,
+                        xlsxData: null
+                    });
+                    displayFile(fileId);
+                    
+                    filesProcessed++;
+                    if (filesProcessed === filesToProcess) {
+                        // Show batch actions after all files are loaded
+                        batchActions.style.display = 'block';
+                    }
+                };
+                
+                reader.readAsText(file);
+            });
+        }
+
+        function displayFile(fileId) {
+            const fileData = filesData.get(fileId);
+            
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.id = `file-${fileId}`;
+            
+            fileItem.innerHTML = `
+                <div class="file-info">
+                    <div class="file-name">${fileData.name}</div>
+                    <div class="file-size">${(fileData.size / 1024).toFixed(2)} KB</div>
+                </div>
+                <div class="file-actions">
+                    <span class="status" id="status-${fileId}"></span>
+                    <button class="download-btn" id="download-${fileId}" style="display: none;" onclick="downloadFile('${fileId}')">Download</button>
+                </div>
+            `;
+            
+            filesList.appendChild(fileItem);
+        }
+
+        function parseCSV(csv) {
+            const lines = csv.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let j = 0; j < lines[i].length; j++) {
+                    const char = lines[i][j];
+                    
+                    if (char === '"' && lines[i][j-1] === '=') {
+                        inQuotes = true;
+                        continue;
+                    } else if (char === '"' && inQuotes) {
+                        inQuotes = false;
+                        continue;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current.replace(/^="|"$/g, ''));
+                        current = '';
+                        continue;
+                    }
+                    
+                    current += char;
+                }
+                values.push(current.replace(/^="|"$/g, ''));
+
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] || '';
+                });
+                data.push(row);
+            }
+
+            return { headers, data };
+        }
+
+        function createDateSummary(data) {
+            const summaryData = {};
+
+            data.forEach(row => {
+                const date = row['Month'];
+                const docCount = parseFloat(row['msg_count']) || 0;
+                const kcsSize = parseFloat(row['bill_size (kC)']) || 0;
+                const direction = row['direction'];
+
+                if (!summaryData[date]) {
+                    // Clean the date value - remove any non-numeric characters except hyphen
+                    const cleanedDate = date.replace(/[^0-9-]/g, '');
+                    
+                    // Convert date from CCYY-MM to MM/01/CCYY
+                    const [year, month] = cleanedDate.split('-');
+                    const formattedDate = `${month}/01/${year}`;
+                    
+                    summaryData[date] = {
+                        'DATE': formattedDate,
+                        'INB-DOC': 0,
+                        'INB-KCS': 0,
+                        'OUT-DOC': 0,
+                        'OUT-KCS': 0,
+                        'TOTAL-DOC': 0,
+                        'TOTAL-KCS': 0
+                    };
+                }
+
+                if (direction === 'RECV') {
+                    summaryData[date]['INB-DOC'] += docCount;
+                    summaryData[date]['INB-KCS'] += kcsSize;
+                } else if (direction === 'SENT') {
+                    summaryData[date]['OUT-DOC'] += docCount;
+                    summaryData[date]['OUT-KCS'] += kcsSize;
+                }
+
+                summaryData[date]['TOTAL-DOC'] += docCount;
+                summaryData[date]['TOTAL-KCS'] += kcsSize;
+            });
+
+            // Round all numeric values to 2 decimal places
+            Object.values(summaryData).forEach(row => {
+                ['INB-DOC', 'INB-KCS', 'OUT-DOC', 'OUT-KCS', 'TOTAL-DOC', 'TOTAL-KCS'].forEach(key => {
+                    row[key] = Math.round(row[key] * 100) / 100;
+                });
+            });
+
+            return Object.values(summaryData);
+        }
+
+        function createDocSummary(data) {
+            const summaryData = {};
+
+            data.forEach(row => {
+                // Clean the document type - remove = signs
+                let docType = row['msg_type'] || 'UNKNOWN';
+                docType = docType.replace(/=/g, '').trim();
+                if (docType === '') docType = 'UNKNOWN';
+                
+                const docCount = parseFloat(row['msg_count']) || 0;
+                const kcsSize = parseFloat(row['bill_size (kC)']) || 0;
+                const direction = row['direction'];
+
+                if (!summaryData[docType]) {
+                    summaryData[docType] = {
+                        'DOC': docType,
+                        'INB-DOC': 0,
+                        'INB-KCS': 0,
+                        'OUT-DOC': 0,
+                        'OUT-KCS': 0,
+                        'TOTAL-DOC': 0,
+                        'TOTAL-KCS': 0
+                    };
+                }
+
+                if (direction === 'RECV') {
+                    summaryData[docType]['INB-DOC'] += docCount;
+                    summaryData[docType]['INB-KCS'] += kcsSize;
+                } else if (direction === 'SENT') {
+                    summaryData[docType]['OUT-DOC'] += docCount;
+                    summaryData[docType]['OUT-KCS'] += kcsSize;
+                }
+
+                summaryData[docType]['TOTAL-DOC'] += docCount;
+                summaryData[docType]['TOTAL-KCS'] += kcsSize;
+            });
+
+            // Round all numeric values to 2 decimal places
+            Object.values(summaryData).forEach(row => {
+                ['INB-DOC', 'INB-KCS', 'OUT-DOC', 'OUT-KCS', 'TOTAL-DOC', 'TOTAL-KCS'].forEach(key => {
+                    row[key] = Math.round(row[key] * 100) / 100;
+                });
+            });
+
+            return Object.values(summaryData);
+        }
+
+        function createHubSummary(data) {
+            const summaryData = {};
+
+            data.forEach(row => {
+                const direction = row['direction'];
+                let hubId = '';
+                
+                // Determine hub ID based on direction
+                if (direction === 'RECV') {
+                    hubId = row['recipient'] || '';  // 6th value (recipient)
+                } else if (direction === 'SENT') {
+                    hubId = row['sender'] || '';     // 3rd value (sender)
+                }
+                
+                // Clean hub ID - remove = signs and quotes
+                hubId = hubId.replace(/[="]/g, '').trim();
+                if (hubId === '') hubId = 'UNKNOWN';
+                
+                const docCount = parseFloat(row['msg_count']) || 0;
+                const kcsSize = parseFloat(row['bill_size (kC)']) || 0;
+
+                if (!summaryData[hubId]) {
+                    summaryData[hubId] = {
+                        'HUB ID': hubId,
+                        'INB-DOC': 0,
+                        'INB-KCS': 0,
+                        'OUT-DOC': 0,
+                        'OUT-KCS': 0,
+                        'TOTAL-DOC': 0,
+                        'TOTAL-KCS': 0
+                    };
+                }
+
+                if (direction === 'RECV') {
+                    summaryData[hubId]['INB-DOC'] += docCount;
+                    summaryData[hubId]['INB-KCS'] += kcsSize;
+                } else if (direction === 'SENT') {
+                    summaryData[hubId]['OUT-DOC'] += docCount;
+                    summaryData[hubId]['OUT-KCS'] += kcsSize;
+                }
+
+                summaryData[hubId]['TOTAL-DOC'] += docCount;
+                summaryData[hubId]['TOTAL-KCS'] += kcsSize;
+            });
+
+            // Round all numeric values to 2 decimal places
+            Object.values(summaryData).forEach(row => {
+                ['INB-DOC', 'INB-KCS', 'OUT-DOC', 'OUT-KCS', 'TOTAL-DOC', 'TOTAL-KCS'].forEach(key => {
+                    row[key] = Math.round(row[key] * 100) / 100;
+                });
+            });
+
+            return Object.values(summaryData);
+        }
+
+        function createTPSummary(data) {
+            const summaryData = {};
+
+            data.forEach(row => {
+                const direction = row['direction'];
+                let tpId = '';
+                
+                // Determine TP ID based on direction (opposite of Hub)
+                if (direction === 'RECV') {
+                    tpId = row['sender'] || '';     // 3rd value (sender)
+                } else if (direction === 'SENT') {
+                    tpId = row['recipient'] || '';  // 6th value (recipient)
+                }
+                
+                // Clean TP ID - remove = signs and quotes
+                tpId = tpId.replace(/[="]/g, '').trim();
+                if (tpId === '') tpId = 'UNKNOWN';
+                
+                const docCount = parseFloat(row['msg_count']) || 0;
+                const kcsSize = parseFloat(row['bill_size (kC)']) || 0;
+
+                if (!summaryData[tpId]) {
+                    summaryData[tpId] = {
+                        'TP ID': tpId,
+                        'INB-DOC': 0,
+                        'INB-KCS': 0,
+                        'OUT-DOC': 0,
+                        'OUT-KCS': 0,
+                        'TOTAL-DOC': 0,
+                        'TOTAL-KCS': 0
+                    };
+                }
+
+                if (direction === 'RECV') {
+                    summaryData[tpId]['INB-DOC'] += docCount;
+                    summaryData[tpId]['INB-KCS'] += kcsSize;
+                } else if (direction === 'SENT') {
+                    summaryData[tpId]['OUT-DOC'] += docCount;
+                    summaryData[tpId]['OUT-KCS'] += kcsSize;
+                }
+
+                summaryData[tpId]['TOTAL-DOC'] += docCount;
+                summaryData[tpId]['TOTAL-KCS'] += kcsSize;
+            });
+
+            // Round all numeric values to 2 decimal places
+            Object.values(summaryData).forEach(row => {
+                ['INB-DOC', 'INB-KCS', 'OUT-DOC', 'OUT-KCS', 'TOTAL-DOC', 'TOTAL-KCS'].forEach(key => {
+                    row[key] = Math.round(row[key] * 100) / 100;
+                });
+            });
+
+            return Object.values(summaryData);
+        }
+
+        function createTPDocSummary(data) {
+            const summaryData = {};
+
+            data.forEach(row => {
+                const direction = row['direction'];
+                let tpId = '';
+                
+                // Determine TP ID based on direction
+                if (direction === 'RECV') {
+                    tpId = row['sender'] || '';     // 3rd value (sender)
+                } else if (direction === 'SENT') {
+                    tpId = row['recipient'] || '';  // 6th value (recipient)
+                }
+                
+                // Clean TP ID - remove = signs and quotes
+                tpId = tpId.replace(/[="]/g, '').trim();
+                if (tpId === '') tpId = 'UNKNOWN';
+                
+                // Clean the document type - remove = signs
+                let docType = row['msg_type'] || 'UNKNOWN';
+                docType = docType.replace(/=/g, '').trim();
+                if (docType === '') docType = 'UNKNOWN';
+                
+                // Create composite key for TP ID and Document Type
+                const key = `${tpId}|${docType}`;
+                
+                const docCount = parseFloat(row['msg_count']) || 0;
+                const kcsSize = parseFloat(row['bill_size (kC)']) || 0;
+
+                if (!summaryData[key]) {
+                    summaryData[key] = {
+                        'TP ID': tpId,
+                        'DOCS': docType,
+                        'INB-DOC': 0,
+                        'INB-KCS': 0,
+                        'OUT-DOC': 0,
+                        'OUT-KCS': 0,
+                        'TOTAL-DOC': 0,
+                        'TOTAL-KCS': 0
+                    };
+                }
+
+                if (direction === 'RECV') {
+                    summaryData[key]['INB-DOC'] += docCount;
+                    summaryData[key]['INB-KCS'] += kcsSize;
+                } else if (direction === 'SENT') {
+                    summaryData[key]['OUT-DOC'] += docCount;
+                    summaryData[key]['OUT-KCS'] += kcsSize;
+                }
+
+                summaryData[key]['TOTAL-DOC'] += docCount;
+                summaryData[key]['TOTAL-KCS'] += kcsSize;
+            });
+
+            // Round all numeric values to 2 decimal places
+            Object.values(summaryData).forEach(row => {
+                ['INB-DOC', 'INB-KCS', 'OUT-DOC', 'OUT-KCS', 'TOTAL-DOC', 'TOTAL-KCS'].forEach(key => {
+                    row[key] = Math.round(row[key] * 100) / 100;
+                });
+            });
+
+            // Sort by TP ID and then by DOCS
+            return Object.values(summaryData).sort((a, b) => {
+                if (a['TP ID'] === b['TP ID']) {
+                    return a['DOCS'].localeCompare(b['DOCS']);
+                }
+                return a['TP ID'].localeCompare(b['TP ID']);
+            });
+        }
+
+        function convertFile(fileId) {
+            const fileData = filesData.get(fileId);
+            const downloadBtn = document.getElementById(`download-${fileId}`);
+            const status = document.getElementById(`status-${fileId}`);
+            
+            status.textContent = 'Converting...';
+            status.className = 'status processing';
+
+            try {
+                // Parse CSV
+                const { headers, data } = parseCSV(fileData.content);
+
+                // Create Date_Summary data
+                const dateSummary = createDateSummary(data);
+
+                // Create Doc_Summary data
+                const docSummary = createDocSummary(data);
+
+                // Create Hub_Summary data
+                const hubSummary = createHubSummary(data);
+
+                // Create TP_Summary data
+                const tpSummary = createTPSummary(data);
+
+                // Create TP_Doc_Summary data
+                const tpDocSummary = createTPDocSummary(data);
+
+                // Create workbook
+                const wb = XLSX.utils.book_new();
+
+                // Create Date_Summary sheet
+                const ws = XLSX.utils.json_to_sheet(dateSummary);
+                XLSX.utils.book_append_sheet(wb, ws, 'Date_Summary');
+
+                // Create Doc_Summary sheet
+                const ws2 = XLSX.utils.json_to_sheet(docSummary);
+                XLSX.utils.book_append_sheet(wb, ws2, 'Doc_Summary');
+
+                // Create Hub_Summary sheet
+                const ws3 = XLSX.utils.json_to_sheet(hubSummary);
+                XLSX.utils.book_append_sheet(wb, ws3, 'Hub_Summary');
+
+                // Create TP_Summary sheet
+                const ws4 = XLSX.utils.json_to_sheet(tpSummary);
+                XLSX.utils.book_append_sheet(wb, ws4, 'TP_Summary');
+
+                // Create TP_Doc_Summary sheet
+                const ws5 = XLSX.utils.json_to_sheet(tpDocSummary);
+                XLSX.utils.book_append_sheet(wb, ws5, 'TP_Doc_Summary');
+
+                // Store the workbook data
+                fileData.xlsxData = wb;
+                fileData.converted = true;
+                
+                // Generate filename and store for download all
+                const value = fileData.name.substring(0, 5);
+                const originalName = fileData.name.replace('.csv', '');
+                const datePattern = originalName.substring(originalName.length - 7);
+                const ccyymm = datePattern.replace('-', '');
+                const outputFileName = `${value}_rpts_${ccyymm}.xlsx`;
+                
+                // Convert to array buffer for zip
+                const xlsxBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                convertedFiles.set(outputFileName, xlsxBuffer);
+                
+                status.textContent = 'Ready to download';
+                status.className = 'status success';
+                downloadBtn.style.display = 'inline-block';
+                
+                // Show download all button if multiple files are converted
+                updateDownloadAllButton();
+            } catch (error) {
+                status.textContent = `Error: ${error.message}`;
+                status.className = 'status error';
+                fileData.converted = false;
+            }
+        }
+
+        function downloadFile(fileId) {
+            const fileData = filesData.get(fileId);
+            if (fileData && fileData.xlsxData) {
+                // Extract first 5 characters for VALUE
+                const value = fileData.name.substring(0, 5);
+                
+                // Extract last 7 characters (CCYY-MM) and convert to CCYYMM
+                const originalName = fileData.name.replace('.csv', '');
+                const datePattern = originalName.substring(originalName.length - 7);
+                const ccyymm = datePattern.replace('-', '');
+                
+                // Create new filename: VALUE_rpts_CCYYMM.xlsx
+                const fileName = `${value}_rpts_${ccyymm}.xlsx`;
+                XLSX.writeFile(fileData.xlsxData, fileName);
+            }
+        }
+
+        function convertAllFiles() {
+            if (filesData.size === 0) return;
+            
+            convertAllBtn.disabled = true;
+            convertAllBtn.textContent = 'Converting...';
+            
+            // Reset all statuses
+            filesData.forEach((fileData, fileId) => {
+                const status = document.getElementById(`status-${fileId}`);
+                const downloadBtn = document.getElementById(`download-${fileId}`);
+                status.textContent = 'Waiting...';
+                status.className = 'status';
+                downloadBtn.style.display = 'none';
+                fileData.converted = false;
+                fileData.xlsxData = null;
+            });
+            
+            // Convert all files
+            let completed = 0;
+            const totalFiles = filesData.size;
+            
+            filesData.forEach((fileData, fileId) => {
+                setTimeout(() => {
+                    convertFile(fileId);
+                    completed++;
+                    
+                    if (completed === totalFiles) {
+                        convertAllBtn.textContent = 'Convert Files to XLSX';
+                        convertAllBtn.disabled = false;
+                    }
+                }, completed * 100); // Small delay between conversions
+            });
+        }
+
+        function clearAllFiles() {
+            filesData.clear();
+            convertedFiles.clear();
+            filesList.innerHTML = '';
+            batchActions.style.display = 'none';
+            downloadAllBtn.style.display = 'none';
+            fileInput.value = '';
+        }
+        
+        function updateDownloadAllButton() {
+            // Show download all button if 2 or more files are converted
+            if (convertedFiles.size >= 2) {
+                downloadAllBtn.style.display = 'inline-block';
+                downloadAllBtn.textContent = `Download All (${convertedFiles.size} files)`;
+            } else {
+                downloadAllBtn.style.display = 'none';
+            }
+        }
+        
+        async function downloadAllAsZip() {
+            if (convertedFiles.size === 0) return;
+            
+            downloadAllBtn.disabled = true;
+            downloadAllBtn.textContent = 'Downloading files...';
+            
+            try {
+                let downloadCount = 0;
+                const totalFiles = convertedFiles.size;
+                
+                // Download each file with a small delay between downloads
+                for (const [filename, arrayBuffer] of convertedFiles) {
+                    // Create blob from array buffer
+                    const blob = new Blob([arrayBuffer], { 
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                    });
+                    
+                    // Create download link
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    
+                    // Trigger download
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Clean up
+                    URL.revokeObjectURL(url);
+                    
+                    downloadCount++;
+                    downloadAllBtn.textContent = `Downloading... (${downloadCount}/${totalFiles})`;
+                    
+                    // Add small delay between downloads to prevent browser blocking
+                    if (downloadCount < totalFiles) {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                }
+                
+                downloadAllBtn.textContent = `Download All (${convertedFiles.size} files)`;
+            } catch (error) {
+                alert('Error downloading files: ' + error.message);
+            } finally {
+                downloadAllBtn.disabled = false;
+            }
+        }
+        
+        /**
+         * Help modal functions
+         */
+        
+        /**
+         * Show help modal dialog
+         */
+        function showHelp() {
+            document.getElementById('helpModal').style.display = 'block';
+        }
+        
+        /**
+         * Close help modal dialog
+         */
+        function closeHelp() {
+            document.getElementById('helpModal').style.display = 'none';
+        }
+        
+        /**
+         * Close help modal when clicking outside content area
+         */
+        window.onclick = function(event) {
+            const modal = document.getElementById('helpModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

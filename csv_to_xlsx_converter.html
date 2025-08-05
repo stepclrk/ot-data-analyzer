@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV to XLSX Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            background-color: #fafafa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #4CAF50;
+            background-color: #f0f8ff;
+        }
+        .upload-area.dragover {
+            border-color: #4CAF50;
+            background-color: #e8f5e9;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .file-list {
+            margin: 20px 0;
+        }
+        .file-item {
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status {
+            font-size: 14px;
+        }
+        .status.processing {
+            color: #ff9800;
+        }
+        .status.completed {
+            color: #4CAF50;
+        }
+        .status.error {
+            color: #f44336;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .download-link {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .download-link:hover {
+            text-decoration: underline;
+        }
+        .download-all-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: none;
+            margin-left: 10px;
+        }
+        .download-all-btn:hover {
+            background-color: #0056b3;
+        }
+        .download-all-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        /* Help menu styles */
+        .help-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 1000;
+            transition: background-color 0.3s;
+        }
+        
+        .help-button:hover {
+            background: #138496;
+        }
+        
+        .help-modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .help-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .close-help {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close-help:hover,
+        .close-help:focus {
+            color: black;
+        }
+        
+        .help-content h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        
+        .help-content h3 {
+            color: #555;
+            margin-top: 20px;
+        }
+        
+        .help-content ul {
+            line-height: 1.8;
+        }
+        
+        .help-content code {
+            background: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <!-- Help Button -->
+    <button class="help-button" onclick="showHelp()">Help</button>
+    
+    <!-- Help Modal -->
+    <div id="helpModal" class="help-modal">
+        <div class="help-content">
+            <span class="close-help" onclick="closeHelp()">&times;</span>
+            <h2>How to Use TG CSV to XLSX Converter</h2>
+            
+            <h3>Overview</h3>
+            <p>This tool converts TG CSV files to Excel XLSX format, organizing data into multiple sheets for better structure and analysis. Perfect for converting TG system exports into professional Excel workbooks.</p>
+            
+            <h3>Step-by-Step Instructions</h3>
+            <ol>
+                <li><strong>Select Files:</strong> Click the upload area or drag and drop your CSV files onto it.</li>
+                <li><strong>Multiple Files:</strong> You can select or drop multiple CSV files at once for batch conversion.</li>
+                <li><strong>Automatic Processing:</strong> Files are automatically converted as soon as they're uploaded.</li>
+                <li><strong>Download Results:</strong> Click the download link next to each file to save the XLSX version.</li>
+                <li><strong>Download All:</strong> When 2 or more files are converted, a "Download All Files" button appears. Click it to download all converted files individually.</li>
+            </ol>
+            
+            <h3>Input File Requirements</h3>
+            <ul>
+                <li>Files must be in CSV format (.csv extension)</li>
+                <li>TG system export format is expected</li>
+                <li>UTF-8 or standard encoding supported</li>
+                <li>No file size limitations (browser memory permitting)</li>
+            </ul>
+            
+            <h3>Output Features</h3>
+            <ul>
+                <li>Excel 2007+ format (.xlsx)</li>
+                <li>Data organized into logical sheets</li>
+                <li>Proper column formatting preserved</li>
+                <li>Original filename retained with .xlsx extension</li>
+                <li>Compatible with all Excel versions</li>
+            </ul>
+            
+            <h3>Advanced Features</h3>
+            <ul>
+                <li><strong>Drag & Drop:</strong> Simply drag files from your file explorer</li>
+                <li><strong>Batch Processing:</strong> Convert multiple files simultaneously</li>
+                <li><strong>Instant Conversion:</strong> No waiting or manual triggers needed</li>
+                <li><strong>Clear All:</strong> Reset the converter to start fresh</li>
+                <li><strong>Download All:</strong> Download multiple converted files with one click (appears when 2+ files are converted)</li>
+            </ul>
+            
+            <h3>Tips for Best Results</h3>
+            <ul>
+                <li>Ensure CSV files are properly formatted with consistent delimiters</li>
+                <li>Check that special characters are properly encoded</li>
+                <li>For large files, allow a moment for processing to complete</li>
+                <li>Download converted files promptly as they're stored temporarily</li>
+            </ul>
+            
+            <h3>Common Issues</h3>
+            <ul>
+                <li><strong>File not converting:</strong> Verify it's a valid CSV file with .csv extension</li>
+                <li><strong>Data looks wrong:</strong> Check CSV delimiter settings (comma, semicolon, tab)</li>
+                <li><strong>Special characters missing:</strong> Ensure source file uses UTF-8 encoding</li>
+                <li><strong>Download not working:</strong> Check browser popup settings</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h1>CSV to XLSX Converter</h1>
+        <p style="text-align: center; color: #666;">Convert CSV files to Excel XLSX format with multiple sheets</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <p>Drag and drop CSV files here or click to select</p>
+            <p style="font-size: 14px; color: #999;">You can select multiple files</p>
+        </div>
+        
+        <input type="file" id="fileInput" multiple accept=".csv">
+        
+        <div class="controls">
+            <button id="convertBtn" disabled>Convert All Files</button>
+            <button id="downloadAllBtn" class="download-all-btn">Download All Files</button>
+            <button id="clearBtn">Clear All</button>
+        </div>
+        
+        <div class="file-list" id="fileList"></div>
+    </div>
+
+    <script>
+        /**
+         * TG CSV to XLSX Converter
+         * Converts TG system CSV exports to structured Excel workbooks
+         * Organizes data into multiple sheets with proper formatting
+         */
+        
+        // DOM element references
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const convertBtn = document.getElementById('convertBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        
+        // State management
+        let selectedFiles = [];              // Array of selected File objects
+        const convertedFiles = new Map();    // Map of filename to converted data
+        
+        /**
+         * File upload event handlers
+         */
+        
+        // Handle click on upload area to trigger file picker
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // Handle file selection via file picker
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        
+        // Handle drag over event - show visual feedback
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        // Handle drag leave event - remove visual feedback
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        // Handle file drop event
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        /**
+         * Button event handlers
+         */
+        
+        // Handle clear button - reset all state
+        clearBtn.addEventListener('click', () => {
+            selectedFiles = [];
+            convertedFiles.clear();
+            fileList.innerHTML = '';
+            convertBtn.disabled = true;
+            downloadAllBtn.style.display = 'none';
+            fileInput.value = '';
+        });
+        
+        // Handle download all button
+        downloadAllBtn.addEventListener('click', downloadAllFiles);
+        
+        // Handle convert button
+        convertBtn.addEventListener('click', () => {
+            convertAllFiles();
+        });
+        
+        /**
+         * Handle selected files - filter for CSV and display
+         * @param {FileList} files - Files selected or dropped by user
+         */
+        function handleFiles(files) {
+            for (let file of files) {
+                // Only accept CSV files
+                if (file.name.endsWith('.csv')) {
+                    selectedFiles.push(file);
+                    displayFile(file);
+                }
+            }
+            // Enable convert button if files are selected
+            if (selectedFiles.length > 0) {
+                convertBtn.disabled = false;
+            }
+        }
+        
+        /**
+         * Display file in the file list UI
+         * @param {File} file - File object to display
+         */
+        function displayFile(file) {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            // Create safe ID by replacing special characters
+            fileItem.id = `file-${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            fileItem.innerHTML = `
+                <span>${file.name}</span>
+                <span class="status">Ready</span>
+            `;
+            fileList.appendChild(fileItem);
+        }
+        
+        /**
+         * Update file status in the UI
+         * @param {string} fileName - Name of the file
+         * @param {string} status - Status class (processing, completed, error)
+         * @param {string} message - Status message to display
+         */
+        function updateFileStatus(fileName, status, message) {
+            const fileId = `file-${fileName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            const fileItem = document.getElementById(fileId);
+            if (fileItem) {
+                const statusElement = fileItem.querySelector('.status');
+                statusElement.className = `status ${status}`;
+                statusElement.textContent = message;
+            }
+        }
+        
+        /**
+         * Convert all selected files to XLSX format
+         * Processes files sequentially and updates status
+         */
+        async function convertAllFiles() {
+            convertBtn.disabled = true;
+            
+            // Process each file
+            for (let file of selectedFiles) {
+                updateFileStatus(file.name, 'processing', 'Processing...');
+                
+                try {
+                    await convertFile(file);
+                    updateFileStatus(file.name, 'completed', 'Completed');
+                } catch (error) {
+                    updateFileStatus(file.name, 'error', `Error: ${error.message}`);
+                    console.error(`Error processing ${file.name}:`, error);
+                }
+            }
+            
+            convertBtn.disabled = false;
+        }
+        
+        /**
+         * Convert a single CSV file to XLSX format
+         * Parses TG CSV format and creates multi-sheet Excel workbook
+         * @param {File} file - CSV file to convert
+         */
+        async function convertFile(file) {
+            const text = await file.text();
+            const lines = text.split('\n').filter(line => line.trim());
+            
+            // Extract customer/entity name from FOR: line (second line)
+            let outputName = '';
+            if (lines.length > 1) {
+                const forLine = lines[1];
+                const forMatch = forLine.match(/FOR:(.+?)(?:\s+ID:|$)/);
+                if (forMatch) {
+                    // Clean name for filename use
+                    outputName = forMatch[1].trim().replace(/\s+/g, '_');
+                }
+            }
+            
+            // Extract date from DATE RANGE: line (third line)
+            let dateStr = '';
+            if (lines.length > 2) {
+                const dateRangeLine = lines[2];
+                const dateRangeMatch = dateRangeLine.match(/DATE RANGE:.*?(\d{2}\/\d{2}\/\d{2})\s*$/);
+                if (dateRangeMatch) {
+                    const endDate = dateRangeMatch[1]; // MM/DD/YY format
+                    const [month, day, year] = endDate.split('/');
+                    // Convert YY to YYYY (assumes 00-29 = 2000-2029, 30-99 = 1930-1999)
+                    const yearNum = parseInt(year);
+                    const fullYear = yearNum <= 29 ? '20' + year : '19' + year;
+                    dateStr = fullYear + month; // YYYYMM format
+                }
+            }
+            
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Define the sections to look for
+            const sections = [
+                'DATE SUMMARY',
+                'DOCUMENT SUMMARY',
+                'HUB ID SUMMARY',
+                'TRADING PARTNER SUMMARY',
+                'TRADING PARTNER/DOCUMENT SUMMARY'
+            ];
+            
+            // Find section boundaries
+            const sectionIndices = {};
+            lines.forEach((line, index) => {
+                for (let section of sections) {
+                    if (line.trim() === section) {
+                        sectionIndices[section] = index;
+                    }
+                }
+            });
+            
+            // Process each section
+            for (let i = 0; i < sections.length; i++) {
+                const section = sections[i];
+                if (sectionIndices[section] !== undefined) {
+                    const startIndex = sectionIndices[section] + 1; // Skip section title
+                    let endIndex = lines.length;
+                    
+                    // Find the end of this section (next section or end of file)
+                    for (let j = i + 1; j < sections.length; j++) {
+                        if (sectionIndices[sections[j]] !== undefined) {
+                            endIndex = Math.min(endIndex, sectionIndices[sections[j]] - 1);
+                        }
+                    }
+                    
+                    // Extract section data
+                    const sectionData = [];
+                    let headerProcessed = false;
+                    let lastFirstColumnValue = ''; // Track last non-empty first column value
+                    
+                    for (let lineIndex = startIndex; lineIndex < endIndex; lineIndex++) {
+                        const line = lines[lineIndex].trim();
+                        
+                        // Skip empty lines and TOTAL line at the end
+                        if (!line || line.startsWith('"TOTAL')) {
+                            continue;
+                        }
+                        
+                        // Skip TP-TOTAL lines in TRADING PARTNER/DOCUMENT SUMMARY
+                        if (section === 'TRADING PARTNER/DOCUMENT SUMMARY' && line.includes('TP-TOTAL')) {
+                            continue;
+                        }
+                        
+                        // Parse CSV line
+                        const row = parseCSVLine(line);
+                        
+                        // Process header (clean up column names)
+                        if (!headerProcessed && row.length > 0) {
+                            const cleanedRow = row.map(cell => {
+                                let cleaned = cell.replace(/"/g, '').trim();
+                                // Rename OUB to OUT
+                                if (cleaned === 'OUB-KCS') cleaned = 'OUT-KCS';
+                                if (cleaned === 'OUB-DOC') cleaned = 'OUT-DOC';
+                                return cleaned;
+                            });
+                            sectionData.push(cleanedRow);
+                            headerProcessed = true;
+                        } else if (row.length > 0) {
+                            // Process data rows
+                            const cleanedRow = row.map((cell, index) => {
+                                const cleaned = cell.replace(/"/g, '').trim();
+                                
+                                // Check if this is the first column (DATE) in DATE SUMMARY section
+                                if (section === 'DATE SUMMARY' && index === 0 && cleaned !== 'TOTAL') {
+                                    return convertDateFormat(cleaned);
+                                }
+                                
+                                // Handle empty first column in TRADING PARTNER/DOCUMENT SUMMARY
+                                if (section === 'TRADING PARTNER/DOCUMENT SUMMARY' && index === 0) {
+                                    if (cleaned === '') {
+                                        return lastFirstColumnValue;
+                                    } else {
+                                        lastFirstColumnValue = cleaned;
+                                        return cleaned;
+                                    }
+                                }
+                                
+                                // Return as string to preserve original format
+                                return cleaned;
+                            });
+                            sectionData.push(cleanedRow);
+                        }
+                    }
+                    
+                    // Add TOTAL row if it exists
+                    for (let lineIndex = startIndex; lineIndex < endIndex; lineIndex++) {
+                        const line = lines[lineIndex].trim();
+                        if (line.startsWith('"TOTAL')) {
+                            const row = parseCSVLine(line);
+                            const cleanedRow = row.map((cell, index) => {
+                                const cleaned = cell.replace(/"/g, '').trim();
+                                
+                                // For TOTAL row in DATE SUMMARY, don't convert the first column
+                                if (section === 'DATE SUMMARY' && index === 0) {
+                                    return cleaned;
+                                }
+                                
+                                // Return as string to preserve original format
+                                return cleaned;
+                            });
+                            sectionData.push(cleanedRow);
+                            break;
+                        }
+                    }
+                    
+                    // Create worksheet from data
+                    if (sectionData.length > 0) {
+                        const ws = XLSX.utils.aoa_to_sheet(sectionData);
+                        
+                        // Auto-size columns
+                        const colWidths = [];
+                        sectionData.forEach(row => {
+                            row.forEach((cell, colIndex) => {
+                                const cellLength = String(cell).length;
+                                colWidths[colIndex] = Math.max(colWidths[colIndex] || 10, cellLength + 2);
+                            });
+                        });
+                        
+                        ws['!cols'] = colWidths.map(width => ({ wch: Math.min(width, 50) }));
+                        
+                        // Add worksheet to workbook
+                        let sheetName;
+                        switch(section) {
+                            case 'DATE SUMMARY':
+                                sheetName = 'Date_Summary';
+                                break;
+                            case 'DOCUMENT SUMMARY':
+                                sheetName = 'Doc_Summary';
+                                break;
+                            case 'HUB ID SUMMARY':
+                                sheetName = 'Hub_Summary';
+                                break;
+                            case 'TRADING PARTNER SUMMARY':
+                                sheetName = 'TP_Summary';
+                                break;
+                            case 'TRADING PARTNER/DOCUMENT SUMMARY':
+                                sheetName = 'TP_Doc_Summary';
+                                break;
+                            default:
+                                sheetName = section.replace(/ /g, '_').replace(/\//g, '-').substring(0, 31);
+                        }
+                        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                    }
+                }
+            }
+            
+            // Generate XLSX file
+            const xlsxData = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([xlsxData], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const outputFileName = outputName && dateStr ? `${outputName}_${dateStr}.xlsx` : file.name.replace('.csv', '.xlsx');
+            
+            // Store converted file for download all
+            convertedFiles.set(outputFileName, xlsxData);
+            updateDownloadAllButton();
+            
+            // Add download link to file item
+            const fileId = `file-${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            const fileItem = document.getElementById(fileId);
+            if (fileItem) {
+                const downloadLink = document.createElement('a');
+                downloadLink.href = url;
+                downloadLink.download = outputFileName;
+                downloadLink.className = 'download-link';
+                downloadLink.textContent = 'Download';
+                fileItem.appendChild(downloadLink);
+            }
+        }
+        
+        /**
+         * Parse a CSV line handling quoted values properly
+         * @param {string} line - CSV line to parse
+         * @returns {Array} Array of parsed values
+         */
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            // Process character by character to handle quotes
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            if (current) {
+                result.push(current.trim());
+            }
+            
+            return result;
+        }
+        
+        /**
+         * Convert date from MM/DD/YY to MM/01/YYYY format
+         * @param {string} dateStr - Date string to convert
+         * @returns {string} Converted date or original if not matching expected format
+         */
+        function convertDateFormat(dateStr) {
+            // Remove any extra whitespace
+            dateStr = dateStr.trim();
+            
+            // Check if it's in MM/DD/YY format
+            const dateMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+            if (dateMatch) {
+                const month = dateMatch[1].padStart(2, '0');
+                const day = dateMatch[2].padStart(2, '0');
+                let year = dateMatch[3];
+                
+                // Convert YY to CCYY (assuming 20YY for 00-29, 19YY for 30-99)
+                const yearNum = parseInt(year);
+                if (yearNum <= 29) {
+                    year = '20' + year;
+                } else {
+                    year = '19' + year;
+                }
+                
+                return `${month}/${day}/${year}`;
+            }
+            
+            // Return original if not in expected format
+            return dateStr;
+        }
+        
+        function updateDownloadAllButton() {
+            // Show download all button if 2 or more files are converted
+            if (convertedFiles.size >= 2) {
+                downloadAllBtn.style.display = 'inline-block';
+                downloadAllBtn.textContent = `Download All (${convertedFiles.size} files)`;
+            } else {
+                downloadAllBtn.style.display = 'none';
+            }
+        }
+        
+        /**
+         * Download all converted files individually
+         * Downloads files with delays to avoid browser blocking
+         */
+        async function downloadAllFiles() {
+            if (convertedFiles.size === 0) return;
+            
+            // Update button state during download
+            downloadAllBtn.disabled = true;
+            downloadAllBtn.textContent = 'Downloading files...';
+            
+            try {
+                let downloadCount = 0;
+                const totalFiles = convertedFiles.size;
+                
+                // Download each file with a delay to prevent browser warnings
+                for (const [filename, arrayBuffer] of convertedFiles) {
+                    // Create blob from array buffer
+                    const blob = new Blob([arrayBuffer], { 
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                    });
+                    
+                    // Create download link
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    
+                    // Trigger download
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Clean up
+                    URL.revokeObjectURL(url);
+                    
+                    downloadCount++;
+                    downloadAllBtn.textContent = `Downloading... (${downloadCount}/${totalFiles})`;
+                    
+                    // Add small delay between downloads to prevent browser blocking
+                    if (downloadCount < totalFiles) {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                }
+                
+                downloadAllBtn.textContent = `Download All (${convertedFiles.size} files)`;
+            } catch (error) {
+                alert('Error downloading files: ' + error.message);
+            } finally {
+                downloadAllBtn.disabled = false;
+            }
+        }
+        
+        // Help modal functions
+        /**
+         * Show help modal dialog
+         */
+        function showHelp() {
+            document.getElementById('helpModal').style.display = 'block';
+        }
+        
+        /**
+         * Close help modal dialog
+         */
+        function closeHelp() {
+            document.getElementById('helpModal').style.display = 'none';
+        }
+        
+        /**
+         * Close modal when clicking outside content area
+         */
+        window.onclick = function(event) {
+            const modal = document.getElementById('helpModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

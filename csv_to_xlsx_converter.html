@@ -446,11 +446,13 @@
                 }
             }
             
-            // Extract date from DATE RANGE: line (third line)
+            // Extract date from DATE RANGE: or FOR THE MONTH OF: line (third line)
             let dateStr = '';
             if (lines.length > 2) {
                 const dateRangeLine = lines[2];
-                const dateRangeMatch = dateRangeLine.match(/DATE RANGE:.*?(\d{2}\/\d{2}\/\d{2})\s*$/);
+                
+                // Try DATE RANGE: pattern first (looking for end date in MM/DD/YY format)
+                let dateRangeMatch = dateRangeLine.match(/DATE RANGE:.*?(\d{2}\/\d{2}\/\d{2})\s*$/);
                 if (dateRangeMatch) {
                     const endDate = dateRangeMatch[1]; // MM/DD/YY format
                     const [month, day, year] = endDate.split('/');
@@ -458,6 +460,45 @@
                     const yearNum = parseInt(year);
                     const fullYear = yearNum <= 29 ? '20' + year : '19' + year;
                     dateStr = fullYear + month; // YYYYMM format
+                } else {
+                    // Try FOR THE MONTH OF: pattern with MM/DD/YY format
+                    dateRangeMatch = dateRangeLine.match(/FOR THE MONTH OF:.*?(\d{2}\/\d{2}\/\d{2})/);
+                    if (dateRangeMatch) {
+                        const endDate = dateRangeMatch[1]; // MM/DD/YY format
+                        const [month, day, year] = endDate.split('/');
+                        // Convert YY to YYYY (assumes 00-29 = 2000-2029, 30-99 = 1930-1999)
+                        const yearNum = parseInt(year);
+                        const fullYear = yearNum <= 29 ? '20' + year : '19' + year;
+                        dateStr = fullYear + month; // YYYYMM format
+                    } else {
+                        // Try FOR THE MONTH OF: pattern with month name and year (e.g., "April 2025")
+                        const monthNameMatch = dateRangeLine.match(/FOR THE MONTH OF:\s*(\w+)\s+(\d{4})/i);
+                        if (monthNameMatch) {
+                            const monthName = monthNameMatch[1];
+                            const year = monthNameMatch[2];
+                            
+                            // Map month names to numbers
+                            const monthMap = {
+                                'january': '01', 'jan': '01',
+                                'february': '02', 'feb': '02',
+                                'march': '03', 'mar': '03',
+                                'april': '04', 'apr': '04',
+                                'may': '05',
+                                'june': '06', 'jun': '06',
+                                'july': '07', 'jul': '07',
+                                'august': '08', 'aug': '08',
+                                'september': '09', 'sep': '09', 'sept': '09',
+                                'october': '10', 'oct': '10',
+                                'november': '11', 'nov': '11',
+                                'december': '12', 'dec': '12'
+                            };
+                            
+                            const monthNum = monthMap[monthName.toLowerCase()];
+                            if (monthNum) {
+                                dateStr = year + monthNum; // YYYYMM format
+                            }
+                        }
+                    }
                 }
             }
             

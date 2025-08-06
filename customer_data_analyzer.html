@@ -11486,6 +11486,16 @@ The data shows operational activity patterns across multiple dimensions...`;
             return '';
         }
         
+        // Extract unique years from all periods
+        const allYears = new Set();
+        allPartners.forEach(([_, tpInfo]) => {
+            tpInfo.periods.forEach(period => {
+                const year = period.split('-')[0];
+                allYears.add(year);
+            });
+        });
+        const yearsArray = Array.from(allYears).sort();
+        
         let html = `
         <div style="margin-top: 30px;">
             <h4 style="color: #2d3748; margin-bottom: 20px;">🌊 Partner Seasonality Patterns - All Trading Partners
@@ -11495,12 +11505,42 @@ The data shows operational activity patterns across multiple dimensions...`;
                         Each cell shows the monthly variation from that partner's average.
                         Green indicates above average months, red indicates below average.
                         Partners are sorted by total volume (highest to lowest).
+                        Use the year filter to analyze specific years or all years combined.
                     </div>
                 </span>
             </h4>
             <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                ${window.idCrossReference ? `
-                <div style="margin-bottom: 10px; display: flex; justify-content: flex-end;">
+                <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="color: #4b5563; font-size: 0.85em; font-weight: 500;">Year Filter:</span>
+                        <select id="tp-seasonality-year-filter" onchange="updateTPSeasonality()" style="
+                            padding: 6px 10px;
+                            border: 1px solid #d1d5db;
+                            border-radius: 6px;
+                            font-size: 0.85em;
+                            background: white;
+                            cursor: pointer;
+                            min-width: 120px;
+                        ">
+                            <option value="all">All Years</option>
+                            ${yearsArray.map(year => `<option value="${year}">${year}</option>`).join('')}
+                        </select>
+                        ${yearsArray.length > 1 ? `
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <input type="checkbox" id="tp-seasonality-multi-select" onchange="toggleMultiYearSelect()" style="cursor: pointer;">
+                            <label for="tp-seasonality-multi-select" style="font-size: 0.85em; color: #6b7280; cursor: pointer;">Multi-select</label>
+                        </div>
+                        <div id="tp-seasonality-multi-years" style="display: none; flex-wrap: wrap; gap: 4px;">
+                            ${yearsArray.map(year => `
+                                <label style="display: flex; align-items: center; gap: 2px; padding: 4px 8px; background: #f3f4f6; border-radius: 4px; cursor: pointer;">
+                                    <input type="checkbox" class="year-checkbox" value="${year}" checked onchange="updateTPSeasonality()">
+                                    <span style="font-size: 0.8em;">${year}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                    </div>
+                    ${window.idCrossReference ? `
                     <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px;">
                         <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
                         <button onclick="setTPDisplayMode('id', 'tp-seasonality-table')" 
@@ -11543,132 +11583,205 @@ The data shows operational activity patterns across multiple dimensions...`;
                                 transition: all 0.2s;
                             ">Region</button>
                     </div>
+                    ` : ''}
                 </div>
-                ` : ''}
-                <div style="max-height: 400px; overflow-y: auto; overflow-x: auto; border: 1px solid #e2e8f0;">
+                <div id="tp-seasonality-container" style="max-height: 400px; overflow-y: auto; overflow-x: auto; border: 1px solid #e2e8f0;">
+                    <!-- Table will be generated here -->
+                </div>`;
+        
+        // Store the data for dynamic updates
+        html += '<scr' + 'ipt>' + `
+            try {
+                window.tpSeasonalityData = ${JSON.stringify(allPartners.map(([tpId, tpInfo]) => ({
+                    tpId,
+                    periods: tpInfo.periods,
+                    doc_values: tpInfo.doc_values
+                }))).replace(/</g, '\\u003c')};
+            } catch(e) {
+                console.error('Error parsing TP seasonality data:', e);
+                window.tpSeasonalityData = [];
+            }
+            
+            function toggleMultiYearSelect() {
+                const checkbox = document.getElementById('tp-seasonality-multi-select');
+                const multiYears = document.getElementById('tp-seasonality-multi-years');
+                const singleSelect = document.getElementById('tp-seasonality-year-filter');
+                
+                if (checkbox.checked) {
+                    multiYears.style.display = 'flex';
+                    singleSelect.disabled = true;
+                    singleSelect.style.opacity = '0.5';
+                } else {
+                    multiYears.style.display = 'none';
+                    singleSelect.disabled = false;
+                    singleSelect.style.opacity = '1';
+                }
+                updateTPSeasonality();
+            }
+            
+            function updateTPSeasonality() {
+                const multiSelect = document.getElementById('tp-seasonality-multi-select');
+                let selectedYears;
+                
+                if (multiSelect && multiSelect.checked) {
+                    // Get selected years from checkboxes
+                    selectedYears = Array.from(document.querySelectorAll('.year-checkbox:checked'))
+                        .map(cb => cb.value);
+                } else {
+                    // Get selected year from dropdown
+                    const yearFilter = document.getElementById('tp-seasonality-year-filter');
+                    const selectedValue = yearFilter ? yearFilter.value : 'all';
+                    selectedYears = selectedValue === 'all' ? null : [selectedValue];
+                }
+                
+                generateTPSeasonalityTable(selectedYears);
+            }
+            
+            function generateTPSeasonalityTable(selectedYears = null) {
+                const container = document.getElementById('tp-seasonality-container');
+                if (!container || !window.tpSeasonalityData) return;
+                
+                let tableHtml = \`
                     <table id="tp-seasonality-table" style="border-collapse: collapse; width: 100%; font-size: 0.75em;">
                         <thead style="position: sticky; top: 0; z-index: 20;">
                             <tr>
                                 <th style="text-align: left; padding: 4px 6px; background: #f7fafc; border: 1px solid #e2e8f0; position: sticky; left: 0; z-index: 21; min-width: 80px;">Partner</th>
                                 <th style="text-align: right; padding: 4px 6px; background: #f7fafc; border: 1px solid #e2e8f0; min-width: 70px;">Avg/Mo</th>
-                                ${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(month => 
-                                    `<th style="text-align: center; padding: 4px 6px; background: #f7fafc; border: 1px solid #e2e8f0; min-width: 80px; font-size: 0.85em;">${month}</th>`
+                                \${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(month => 
+                                    \`<th style="text-align: center; padding: 4px 6px; background: #f7fafc; border: 1px solid #e2e8f0; min-width: 80px; font-size: 0.85em;">\${month}</th>\`
                                 ).join('')}
                             </tr>
                         </thead>
-                        <tbody>`;
-        
-        // Calculate seasonality for ALL partners
-        allPartners.forEach(([tpId, tpInfo], index) => {
-            const monthlyVolumes = {};
-            const monthCounts = {};
-            
-            // Aggregate volumes by month for this partner
-            tpInfo.periods.forEach((period, idx) => {
-                const month = period.split('-')[1];
-                if (!monthlyVolumes[month]) {
-                    monthlyVolumes[month] = 0;
-                    monthCounts[month] = 0;
-                }
-                monthlyVolumes[month] += tpInfo.doc_values[idx] || 0;
-                monthCounts[month]++;
-            });
-            
-            // Calculate monthly averages
-            const monthlyAverages = {};
-            Object.keys(monthlyVolumes).forEach(month => {
-                monthlyAverages[month] = monthlyVolumes[month] / monthCounts[month];
-            });
-            
-            const values = Object.values(monthlyAverages);
-            const overallAverage = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
-            
-            // Calculate seasonality factors
-            const seasonalityFactors = {};
-            Object.keys(monthlyAverages).forEach(month => {
-                if (overallAverage > 0) {
-                    seasonalityFactors[month] = ((monthlyAverages[month] - overallAverage) / overallAverage * 100).toFixed(1);
-                } else {
-                    seasonalityFactors[month] = '0.0';
-                }
-            });
-            
-            // Create table row for this partner
-            html += `<tr style="${index % 2 === 0 ? 'background: #f9fafb;' : ''}">
-                <td class="tp-id-cell" data-id="${tpId}" style="padding: 4px 6px; border: 1px solid #e2e8f0; font-weight: 500; position: sticky; left: 0; background: ${index % 2 === 0 ? '#f9fafb' : '#ffffff'}; z-index: 5; font-size: 0.85em;">${tpId}</td>
-                <td style="padding: 4px 6px; border: 1px solid #e2e8f0; text-align: right; font-size: 0.85em;">${Math.round(overallAverage).toLocaleString()}</td>`;
-            
-            // Display month cells
-            const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
-            
-            months.forEach((month) => {
-                const factor = parseFloat(seasonalityFactors[month] || 0);
-                let bgColor, textColor, intensity;
+                        <tbody>\`;
                 
-                // Calculate color intensity based on factor magnitude
-                if (factor > 20) {
-                    bgColor = '#065f46';
-                    textColor = '#ffffff';
-                    intensity = 1;
-                } else if (factor > 10) {
-                    bgColor = '#10b981';
-                    textColor = '#ffffff';
-                    intensity = 0.8;
-                } else if (factor > 5) {
-                    bgColor = '#34d399';
-                    textColor = '#065f46';
-                    intensity = 0.6;
-                } else if (factor > 0) {
-                    bgColor = '#86efac';
-                    textColor = '#065f46';
-                    intensity = 0.4;
-                } else if (factor < -20) {
-                    bgColor = '#991b1b';
-                    textColor = '#ffffff';
-                    intensity = 1;
-                } else if (factor < -10) {
-                    bgColor = '#ef4444';
-                    textColor = '#ffffff';
-                    intensity = 0.8;
-                } else if (factor < -5) {
-                    bgColor = '#f87171';
-                    textColor = '#991b1b';
-                    intensity = 0.6;
-                } else if (factor < 0) {
-                    bgColor = '#fca5a5';
-                    textColor = '#991b1b';
-                    intensity = 0.4;
-                } else {
-                    bgColor = '#f3f4f6';
-                    textColor = '#374151';
-                    intensity = 0.2;
-                }
-                
-                // Show value or dash if no data
-                const displayValue = seasonalityFactors[month] ? 
-                    `${factor > 0 ? '+' : ''}${factor}%` : 
-                    '-';
-                
-                html += `
-                <td style="
-                    padding: 3px;
-                    border: 1px solid #e2e8f0;
-                    text-align: center;
-                    background: ${bgColor};
-                    color: ${textColor};
-                    font-weight: ${Math.abs(factor) > 10 ? '600' : '400'};
-                    font-size: 0.75em;
-                    min-width: 45px;
-                ">${displayValue}</td>`;
-            });
+                // Calculate seasonality for ALL partners with year filter
+                window.tpSeasonalityData.forEach((tpInfo, index) => {
+                    const monthlyVolumes = {};
+                    const monthCounts = {};
+                    
+                    // Aggregate volumes by month for this partner, filtering by year
+                    tpInfo.periods.forEach((period, idx) => {
+                        const [year, month] = period.split('-');
+                        
+                        // Apply year filter
+                        if (selectedYears && !selectedYears.includes(year)) {
+                            return;
+                        }
+                        
+                        if (!monthlyVolumes[month]) {
+                            monthlyVolumes[month] = 0;
+                            monthCounts[month] = 0;
+                        }
+                        monthlyVolumes[month] += tpInfo.doc_values[idx] || 0;
+                        monthCounts[month]++;
+                    });
+                    
+                    // Calculate monthly averages
+                    const monthlyAverages = {};
+                    Object.keys(monthlyVolumes).forEach(month => {
+                        monthlyAverages[month] = monthlyVolumes[month] / monthCounts[month];
+                    });
+                    
+                    const values = Object.values(monthlyAverages);
+                    const overallAverage = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+                    
+                    // Calculate seasonality factors
+                    const seasonalityFactors = {};
+                    Object.keys(monthlyAverages).forEach(month => {
+                        if (overallAverage > 0) {
+                            seasonalityFactors[month] = ((monthlyAverages[month] - overallAverage) / overallAverage * 100).toFixed(1);
+                        } else {
+                            seasonalityFactors[month] = '0.0';
+                        }
+                    });
+                    
+                    // Create table row for this partner
+                    tableHtml += \`<tr style="\${index % 2 === 0 ? 'background: #f9fafb;' : ''}">
+                        <td class="tp-id-cell" data-id="\${tpInfo.tpId}" style="padding: 4px 6px; border: 1px solid #e2e8f0; font-weight: 500; position: sticky; left: 0; background: \${index % 2 === 0 ? '#f9fafb' : '#ffffff'}; z-index: 5; font-size: 0.85em;">\${tpInfo.tpId}</td>
+                        <td style="padding: 4px 6px; border: 1px solid #e2e8f0; text-align: right; font-size: 0.85em;">\${Math.round(overallAverage).toLocaleString()}</td>\`;
             
-            html += `</tr>`;
-        });
+                    // Display month cells
+                    const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+                    
+                    months.forEach((month) => {
+                        const factor = parseFloat(seasonalityFactors[month] || 0);
+                        let bgColor, textColor, intensity;
+                        
+                        // Calculate color intensity based on factor magnitude
+                        if (factor > 20) {
+                            bgColor = '#065f46';
+                            textColor = '#ffffff';
+                            intensity = 1;
+                        } else if (factor > 10) {
+                            bgColor = '#10b981';
+                            textColor = '#ffffff';
+                            intensity = 0.8;
+                        } else if (factor > 5) {
+                            bgColor = '#34d399';
+                            textColor = '#065f46';
+                            intensity = 0.6;
+                        } else if (factor > 0) {
+                            bgColor = '#86efac';
+                            textColor = '#065f46';
+                            intensity = 0.4;
+                        } else if (factor < -20) {
+                            bgColor = '#991b1b';
+                            textColor = '#ffffff';
+                            intensity = 1;
+                        } else if (factor < -10) {
+                            bgColor = '#ef4444';
+                            textColor = '#ffffff';
+                            intensity = 0.8;
+                        } else if (factor < -5) {
+                            bgColor = '#f87171';
+                            textColor = '#991b1b';
+                            intensity = 0.6;
+                        } else if (factor < 0) {
+                            bgColor = '#fca5a5';
+                            textColor = '#991b1b';
+                            intensity = 0.4;
+                        } else {
+                            bgColor = '#f3f4f6';
+                            textColor = '#374151';
+                            intensity = 0.2;
+                        }
+                        
+                        // Show value or dash if no data
+                        const displayValue = seasonalityFactors[month] ? 
+                            \`\${factor > 0 ? '+' : ''}\${factor}%\` : 
+                            '-';
+                        
+                        tableHtml += \`
+                        <td style="
+                            padding: 3px;
+                            border: 1px solid #e2e8f0;
+                            text-align: center;
+                            background: \${bgColor};
+                            color: \${textColor};
+                            font-weight: \${Math.abs(factor) > 10 ? '600' : '400'};
+                            font-size: 0.75em;
+                            min-width: 45px;
+                        ">\${displayValue}</td>\`;
+                    });
+                    
+                    tableHtml += \`</tr>\`;
+                });
+                
+                tableHtml += \`</tbody></table>\`;
+                container.innerHTML = tableHtml;
+                
+                // Re-apply cross-reference if available
+                if (window.idCrossReference) {
+                    const currentMode = document.querySelector('.display-mode-btn[style*="background: #3b82f6"]')?.dataset.mode || 'id';
+                    setTPDisplayMode(currentMode, 'tp-seasonality-table');
+                }
+            }
+            
+            // Generate initial table
+            generateTPSeasonalityTable();
+        ` + '</scr' + 'ipt>';
         
         html += `
-                        </tbody>
-                    </table>
-                </div>
                 <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <div style="font-size: 0.7em; color: #6b7280; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
                         <strong>Legend:</strong>
@@ -11729,21 +11842,8 @@ The data shows operational activity patterns across multiple dimensions...`;
         html += `
         <script>
         window.exportPartnerSeasonality = function(format) {
-            // Find the seasonality table
-            const tables = document.querySelectorAll('table');
-            let seasonalityTable = null;
-            
-            // Find the table that contains Partner Seasonality data
-            for (let table of tables) {
-                const firstCell = table.querySelector('th');
-                if (firstCell && firstCell.textContent.trim() === 'Partner') {
-                    const avgCell = table.querySelector('th:nth-child(2)');
-                    if (avgCell && avgCell.textContent.includes('Avg/Mo')) {
-                        seasonalityTable = table;
-                        break;
-                    }
-                }
-            }
+            // Find the seasonality table by ID
+            const seasonalityTable = document.getElementById('tp-seasonality-table');
             
             if (!seasonalityTable) {
                 alert('Seasonality table not found');

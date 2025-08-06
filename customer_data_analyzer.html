@@ -2821,6 +2821,12 @@ The data shows operational activity patterns across multiple dimensions...`;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         
+        .monthly-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
         .monthly-table th {
             background: #f7fafc;
             padding: 15px;
@@ -2828,6 +2834,9 @@ The data shows operational activity patterns across multiple dimensions...`;
             font-weight: 600;
             color: #2d3748;
             border-bottom: 2px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 101;
         }
         
         .monthly-table td {
@@ -3024,6 +3033,12 @@ The data shows operational activity patterns across multiple dimensions...`;
             margin-bottom: 20px;
         }
         
+        .tp-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
         .tp-table th {
             background: #f7fafc;
             padding: 12px;
@@ -3032,6 +3047,9 @@ The data shows operational activity patterns across multiple dimensions...`;
             color: #2d3748;
             border-bottom: 2px solid #e2e8f0;
             font-size: 0.9em;
+            position: sticky;
+            top: 0;
+            z-index: 101;
         }
         
         .tp-table td {
@@ -3251,6 +3269,12 @@ The data shows operational activity patterns across multiple dimensions...`;
             overflow: visible;
         }
         
+        .matrix-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
         .matrix-table th,
         .matrix-table td {
             padding: 10px;
@@ -3261,6 +3285,10 @@ The data shows operational activity patterns across multiple dimensions...`;
             font-weight: 600;
             text-align: left;
             color: #2d3748;
+            background: #f7fafc;
+            position: sticky;
+            top: 0;
+            z-index: 101;
         }
         
         .matrix-table td {
@@ -3361,12 +3389,45 @@ The data shows operational activity patterns across multiple dimensions...`;
             text-underline-offset: 2px;
         }
         
+        /* General sticky header for all tables */
+        table {
+            position: relative;
+        }
+        
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        th {
+            position: sticky;
+            top: 0;
+            z-index: 101;
+            background: inherit;
+        }
+        
+        /* Ensure table headers have a background */
+        table:not(.monthly-table):not(.tp-table):not(.matrix-table) th {
+            background: #f7fafc;
+        }
+        
+        /* Table wrapper for scrollable tables */
+        .table-wrapper {
+            max-height: 600px;
+            overflow-y: auto;
+            overflow-x: auto;
+            position: relative;
+        }
+        
         /* Sortable table headers */
         th.sortable {
             cursor: pointer;
             user-select: none;
             transition: background 0.2s;
-            position: relative;
+            position: sticky;
+            top: 0;
+            z-index: 102;
         }
         
         th.sortable:hover {

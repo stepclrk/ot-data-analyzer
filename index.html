@@ -433,6 +433,124 @@
             box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
         }
 
+        /* Media Section */
+        .media {
+            padding: 5rem 2rem;
+            background: var(--bg-secondary);
+        }
+
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+
+        .media-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
+        }
+
+        .media-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15);
+        }
+
+        .media-header {
+            padding: 2rem 2rem 1rem;
+            background: var(--card-gradient);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .media-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--primary-gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .media-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .media-content {
+            padding: 2rem;
+        }
+
+        .media-content video,
+        .media-content audio {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .media-content video {
+            max-height: 400px;
+            background: #000;
+        }
+
+        .media-content audio {
+            height: 54px;
+        }
+
+        .media-description {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .podcast-info {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        .podcast-info span {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .podcast-duration {
+            font-weight: 600;
+        }
+
+        /* Custom audio player styling */
+        audio::-webkit-media-controls-panel {
+            background-color: #f8f9fa;
+        }
+
+        audio::-webkit-media-controls-play-button {
+            background-color: var(--accent-color);
+            border-radius: 50%;
+        }
+
+        /* Custom video player styling */
+        video::-webkit-media-controls {
+            background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.5));
+        }
+
+        video::-webkit-media-controls-play-button {
+            background-color: var(--accent-color);
+            border-radius: 50%;
+        }
+
         /* Stats Section */
         .stats {
             padding: 5rem 2rem;
@@ -535,7 +653,8 @@
             }
 
             .features-grid,
-            .tools-grid {
+            .tools-grid,
+            .media-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -578,6 +697,7 @@
             <div class="logo">Data Analytics Toolkit</div>
             <ul class="nav-links">
                 <li><a href="#home">Home</a></li>
+                <li><a href="#media">Media</a></li>
                 <li><a href="#features">Features</a></li>
                 <li><a href="#tools">Tools</a></li>
                 <li><a href="#about">About</a></li>
@@ -600,6 +720,57 @@
             <a href="./customer_data_analyzer.html" class="cta-button" target="_blank">
                 Launch Analytics Platform
             </a>
+        </div>
+    </section>
+
+    <!-- Media Section -->
+    <section class="media" id="media">
+        <div class="container">
+            <h2 class="section-title">Learn More</h2>
+            <p class="section-subtitle">Watch our tutorial video and listen to our podcast</p>
+            
+            <div class="media-grid">
+                <!-- Video Section -->
+                <div class="media-card fade-in">
+                    <div class="media-header">
+                        <div class="media-icon">🎥</div>
+                        <h3 class="media-title">Tutorial Video</h3>
+                    </div>
+                    <div class="media-content">
+                        <video controls preload="metadata" poster="">
+                            <source src="./media/video.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <p class="media-description">
+                            Watch our comprehensive tutorial to learn how to use all the features 
+                            of the Customer Data Analytics Toolkit effectively.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Podcast Section -->
+                <div class="media-card fade-in">
+                    <div class="media-header">
+                        <div class="media-icon">🎧</div>
+                        <h3 class="media-title">Analytics Podcast</h3>
+                    </div>
+                    <div class="media-content">
+                        <audio controls preload="metadata">
+                            <source src="./media/podcast.m4a" type="audio/mp4">
+                            <source src="./media/podcast.m4a" type="audio/x-m4a">
+                            Your browser does not support the audio element.
+                        </audio>
+                        <p class="media-description">
+                            Listen to our podcast discussing best practices for data analysis, 
+                            insights generation, and how to maximize the value from your billing data.
+                        </p>
+                        <div class="podcast-info">
+                            <span class="podcast-duration">Duration: Available after loading</span>
+                            <span class="podcast-format">Format: M4A Audio</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -870,6 +1041,33 @@
             if (hero) {
                 hero.style.transform = `translateY(${scrolled * 0.5}px)`;
                 hero.style.opacity = 1 - (scrolled * 0.001);
+            }
+        });
+
+        // Update audio duration when metadata loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const audioElement = document.querySelector('audio');
+            if (audioElement) {
+                audioElement.addEventListener('loadedmetadata', () => {
+                    const duration = audioElement.duration;
+                    if (duration && !isNaN(duration)) {
+                        const minutes = Math.floor(duration / 60);
+                        const seconds = Math.floor(duration % 60);
+                        const durationText = `Duration: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                        const durationElement = document.querySelector('.podcast-duration');
+                        if (durationElement) {
+                            durationElement.textContent = durationText;
+                        }
+                    }
+                });
+            }
+
+            // Add video poster frame fallback
+            const videoElement = document.querySelector('video');
+            if (videoElement) {
+                videoElement.addEventListener('error', () => {
+                    console.log('Video failed to load. Please check the file path.');
+                });
             }
         });
     </script>

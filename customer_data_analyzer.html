@@ -6336,35 +6336,304 @@ The data shows operational activity patterns across multiple dimensions...`;
             // Get cross-reference data from parent window if in iframe, otherwise use local
             const crossRef = getCrossReference();
             
-            // Update cell displays
-            const cells = table.querySelectorAll('.tp-id-cell');
-            cells.forEach(cell => {
-                const id = cell.getAttribute('data-id');
-                if (!id) return;
-                
-                // Store original HTML if not already stored
-                if (!cell.hasAttribute('data-original-html')) {
-                    cell.setAttribute('data-original-html', cell.innerHTML);
+            // Special handling for hub tables that need data grouping by region
+            const hubTables = ['hubPerformanceTable', 'hubDocsMonthlyTable', 'hubKCsMonthlyTable'];
+            const hubData = window.hubData || (window.parent && window.parent.hubData);
+            
+            if (hubTables.includes(tableId) && hubData) {
+                if (mode === 'region' && crossRef) {
+                    updateHubTableForRegion(tableId, mode, crossRef);
+                } else {
+                    // For hub tables switching to ID or Name mode, regenerate the table
+                    regenerateHubTable(tableId, mode, crossRef);
                 }
+            } else {
+                // Standard cell update for non-hub tables
+                const cells = table.querySelectorAll('.tp-id-cell');
+                cells.forEach(cell => {
+                    const id = cell.getAttribute('data-id');
+                    if (!id) return;
+                    
+                    // Store original HTML if not already stored
+                    if (!cell.hasAttribute('data-original-html')) {
+                        cell.setAttribute('data-original-html', cell.innerHTML);
+                    }
+                    
+                    let displayValue = id;
+                    if (crossRef && crossRef[id]) {
+                        const xref = crossRef[id];
+                        if (mode === 'name' && xref.name) {
+                            displayValue = xref.name;
+                        } else if (mode === 'region' && xref.region) {
+                            displayValue = xref.region;
+                        }
+                    }
+                    
+                    // Preserve HTML formatting (like <strong> tags) from original
+                    const originalHTML = cell.getAttribute('data-original-html');
+                    if (originalHTML && originalHTML.includes('<strong>')) {
+                        cell.innerHTML = '<strong>' + displayValue + '</strong>';
+                    } else {
+                        cell.textContent = displayValue;
+                    }
+                });
+            }
+        };
+        
+        // New function to update hub tables with region grouping
+        window.updateHubTableForRegion = function(tableId, mode, crossRef) {
+            const table = document.getElementById(tableId);
+            
+            // Get hubData from the appropriate context
+            const hubData = window.hubData || (window.parent && window.parent.hubData);
+            if (!table || !hubData) return;
+            
+            const tbody = table.querySelector('tbody');
+            const tfoot = table.querySelector('tfoot');
+            if (!tbody) return;
+            
+            if (mode === 'region') {
+                // Group data by region
+                const regionData = {};
                 
-                let displayValue = id;
-                if (crossRef && crossRef[id]) {
-                    const xref = crossRef[id];
-                    if (mode === 'name' && xref.name) {
-                        displayValue = xref.name;
-                    } else if (mode === 'region' && xref.region) {
-                        displayValue = xref.region;
+                if (tableId === 'hubPerformanceTable') {
+                    // Group hub performance data by region
+                    Object.values(hubData.hubDetails).forEach(hub => {
+                        let regionKey = hub.id;
+                        if (crossRef[hub.id] && crossRef[hub.id].region) {
+                            regionKey = crossRef[hub.id].region;
+                        }
+                        
+                        if (!regionData[regionKey]) {
+                            regionData[regionKey] = {
+                                docs: 0,
+                                kcs: 0,
+                                hubCount: 0,
+                                periods: new Set()
+                            };
+                        }
+                        
+                        regionData[regionKey].docs += hub.docs;
+                        regionData[regionKey].kcs += hub.kcs;
+                        regionData[regionKey].hubCount++;
+                        
+                        // Add periods for this hub
+                        if (hubData.periodData[hub.id]) {
+                            Object.keys(hubData.periodData[hub.id]).forEach(period => {
+                                regionData[regionKey].periods.add(period);
+                            });
+                        }
+                    });
+                    
+                    // Generate new table body for performance table
+                    const sortedRegions = Object.entries(regionData).sort((a, b) => b[1].docs - a[1].docs);
+                    let newBody = '';
+                    
+                    sortedRegions.forEach(([region, data], index) => {
+                        const docPerKc = data.kcs > 0 ? (data.docs / data.kcs).toFixed(3) : '0.000';
+                        const kcPerDoc = data.docs > 0 ? (data.kcs / data.docs).toFixed(3) : '0.000';
+                        const activePeriods = data.periods.size;
+                        const avgDocsPerPeriod = activePeriods > 0 ? Math.round(data.docs / activePeriods) : 0;
+                        const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                        
+                        const docPerKcColor = docPerKc > 1 ? '#059669' : docPerKc > 0.5 ? '#f59e0b' : '#dc2626';
+                        const kcPerDocColor = kcPerDoc < 1 ? '#059669' : kcPerDoc < 5 ? '#f59e0b' : '#dc2626';
+                        
+                        newBody += '<tr style="background: ' + rowBg + '; border-bottom: 1px solid #e5e7eb;">';
+                        newBody += '<td class="tp-id-cell" data-id="' + region + '" style="padding: 10px; font-weight: 500;">' + region + ' (' + data.hubCount + ' hubs)</td>';
+                        newBody += '<td style="padding: 10px; text-align: right;">' + data.docs.toLocaleString() + '</td>';
+                        newBody += '<td style="padding: 10px; text-align: right;">' + data.kcs.toLocaleString() + '</td>';
+                        newBody += '<td style="padding: 10px; text-align: right; color: ' + docPerKcColor + '; font-weight: 600;">' + docPerKc + '</td>';
+                        newBody += '<td style="padding: 10px; text-align: right; color: ' + kcPerDocColor + '; font-weight: 600;">' + kcPerDoc + '</td>';
+                        newBody += '<td style="padding: 10px; text-align: right;">' + avgDocsPerPeriod.toLocaleString() + '</td>';
+                        newBody += '<td style="padding: 10px; text-align: right;">' + activePeriods + '</td>';
+                        newBody += '</tr>';
+                    });
+                    
+                    tbody.innerHTML = newBody;
+                    
+                } else if (tableId === 'hubDocsMonthlyTable' || tableId === 'hubKCsMonthlyTable') {
+                    // Group monthly data by region
+                    const isDocsTable = tableId === 'hubDocsMonthlyTable';
+                    
+                    // First, group hubs by region
+                    const hubToRegion = {};
+                    Object.values(hubData.hubDetails).forEach(hub => {
+                        let regionKey = hub.id;
+                        if (crossRef[hub.id] && crossRef[hub.id].region) {
+                            regionKey = crossRef[hub.id].region;
+                        }
+                        hubToRegion[hub.id] = regionKey;
+                        
+                        if (!regionData[regionKey]) {
+                            regionData[regionKey] = {
+                                periodData: {},
+                                total: 0
+                            };
+                        }
+                    });
+                    
+                    // Aggregate period data by region
+                    Object.entries(hubData.periodData).forEach(([hubId, periods]) => {
+                        const region = hubToRegion[hubId];
+                        if (!region) return;
+                        
+                        Object.entries(periods).forEach(([period, data]) => {
+                            if (!regionData[region].periodData[period]) {
+                                regionData[region].periodData[period] = { docs: 0, kcs: 0 };
+                            }
+                            regionData[region].periodData[period].docs += data.docs;
+                            regionData[region].periodData[period].kcs += data.kcs;
+                            regionData[region].total += isDocsTable ? data.docs : data.kcs;
+                        });
+                    });
+                    
+                    // Sort regions by total
+                    const sortedRegions = Object.entries(regionData).sort((a, b) => b[1].total - a[1].total);
+                    
+                    // Generate new table body
+                    let newBody = '';
+                    let periodTotals = {};
+                    
+                    sortedRegions.forEach(([region, data], index) => {
+                        const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                        newBody += '<tr style="background: ' + rowBg + '; border-bottom: 1px solid #e5e7eb;">';
+                        newBody += '<td class="tp-id-cell" data-id="' + region + '" style="padding: 10px; font-weight: 500; position: sticky; left: 0; background: ' + rowBg + '; z-index: 5;">' + region + '</td>';
+                        
+                        let rowTotal = 0;
+                        hubData.periods.sort().forEach(period => {
+                            const value = data.periodData[period] ? 
+                                (isDocsTable ? data.periodData[period].docs : data.periodData[period].kcs) : 0;
+                            rowTotal += value;
+                            
+                            if (!periodTotals[period]) periodTotals[period] = 0;
+                            periodTotals[period] += value;
+                            
+                            const cellBg = value > 0 ? 'background: rgba(59, 130, 246, 0.1);' : '';
+                            newBody += '<td style="padding: 10px; text-align: right; ' + cellBg + '">' + 
+                                (value > 0 ? value.toLocaleString() : '-') + '</td>';
+                        });
+                        
+                        newBody += '<td style="padding: 10px; text-align: right; font-weight: 600; background: #e6f7ff;">' + 
+                            rowTotal.toLocaleString() + '</td>';
+                        newBody += '</tr>';
+                    });
+                    
+                    tbody.innerHTML = newBody;
+                    
+                    // Update footer totals
+                    if (tfoot) {
+                        let footerHtml = '<tr style="background: #f1f5f9; font-weight: 600;">';
+                        footerHtml += '<td style="padding: 10px; border-top: 2px solid #e5e7eb; position: sticky; left: 0; background: #f1f5f9; z-index: 5;">Total</td>';
+                        
+                        let grandTotal = 0;
+                        hubData.periods.sort().forEach(period => {
+                            const total = periodTotals[period] || 0;
+                            grandTotal += total;
+                            footerHtml += '<td style="padding: 10px; text-align: right; border-top: 2px solid #e5e7eb;">' + 
+                                total.toLocaleString() + '</td>';
+                        });
+                        
+                        footerHtml += '<td style="padding: 10px; text-align: right; border-top: 2px solid #e5e7eb; background: #e6f7ff;">' + 
+                            grandTotal.toLocaleString() + '</td>';
+                        footerHtml += '</tr>';
+                        
+                        tfoot.innerHTML = footerHtml;
                     }
                 }
+            } else {
+                // For ID or Name mode, restore original table structure
+                // This requires storing the original data, so we'll regenerate from hubData
+                regenerateHubTable(tableId, mode, crossRef);
+            }
+        };
+        
+        // Function to regenerate hub tables in original format (ID or Name mode)
+        window.regenerateHubTable = function(tableId, mode, crossRef) {
+            const table = document.getElementById(tableId);
+            
+            // Get hubData from the appropriate context
+            const hubData = window.hubData || (window.parent && window.parent.hubData);
+            if (!table || !hubData) return;
+            
+            const tbody = table.querySelector('tbody');
+            if (!tbody) return;
+            
+            if (tableId === 'hubPerformanceTable') {
+                // Regenerate performance table
+                let newBody = '';
+                Object.values(hubData.hubDetails)
+                    .sort((a, b) => b.docs - a.docs)
+                    .forEach((hub, index) => {
+                        const docPerKc = hub.kcs > 0 ? (hub.docs / hub.kcs).toFixed(3) : '0.000';
+                        const kcPerDoc = hub.docs > 0 ? (hub.kcs / hub.docs).toFixed(3) : '0.000';
+                        
+                        let activePeriods = 0;
+                        if (hubData.periodData[hub.id]) {
+                            activePeriods = Object.keys(hubData.periodData[hub.id]).length;
+                        }
+                        
+                        const avgDocsPerPeriod = activePeriods > 0 ? Math.round(hub.docs / activePeriods) : 0;
+                        const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                        
+                        const docPerKcColor = docPerKc > 1 ? '#059669' : docPerKc > 0.5 ? '#f59e0b' : '#dc2626';
+                        const kcPerDocColor = kcPerDoc < 1 ? '#059669' : kcPerDoc < 5 ? '#f59e0b' : '#dc2626';
+                        
+                        let displayValue = hub.id;
+                        if (crossRef && crossRef[hub.id]) {
+                            if (mode === 'name' && crossRef[hub.id].name) {
+                                displayValue = crossRef[hub.id].name;
+                            }
+                        }
+                        
+                        newBody += '<tr style="background: ' + rowBg + '; border-bottom: 1px solid #e5e7eb;">';
+                        newBody += '<td class="tp-id-cell" data-id="' + hub.id + '" style="padding: 10px; font-weight: 500;">' + displayValue + '</td>';
+                        newBody += '<td style="padding: 10px; text-align: right;">' + hub.docs.toLocaleString() + '</td>';
+                        newBody += '<td style="padding: 10px; text-align: right;">' + hub.kcs.toLocaleString() + '</td>';
+                        newBody += '<td style="padding: 10px; text-align: right; color: ' + docPerKcColor + '; font-weight: 600;">' + docPerKc + '</td>';
+                        newBody += '<td style="padding: 10px; text-align: right; color: ' + kcPerDocColor + '; font-weight: 600;">' + kcPerDoc + '</td>';
+                        newBody += '<td style="padding: 10px; text-align: right;">' + avgDocsPerPeriod.toLocaleString() + '</td>';
+                        newBody += '<td style="padding: 10px; text-align: right;">' + activePeriods + '</td>';
+                        newBody += '</tr>';
+                    });
                 
-                // Preserve HTML formatting (like <strong> tags) from original
-                const originalHTML = cell.getAttribute('data-original-html');
-                if (originalHTML && originalHTML.includes('<strong>')) {
-                    cell.innerHTML = '<strong>' + displayValue + '</strong>';
-                } else {
-                    cell.textContent = displayValue;
-                }
-            });
+                tbody.innerHTML = newBody;
+                
+            } else if (tableId === 'hubDocsMonthlyTable' || tableId === 'hubKCsMonthlyTable') {
+                // Regenerate monthly tables
+                const isDocsTable = tableId === 'hubDocsMonthlyTable';
+                let newBody = '';
+                
+                Object.values(hubData.hubDetails)
+                    .sort((a, b) => b.docs - a.docs)
+                    .forEach((hub, index) => {
+                        const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                        
+                        let displayValue = hub.id;
+                        if (crossRef && crossRef[hub.id]) {
+                            if (mode === 'name' && crossRef[hub.id].name) {
+                                displayValue = crossRef[hub.id].name;
+                            }
+                        }
+                        
+                        newBody += '<tr style="background: ' + rowBg + '; border-bottom: 1px solid #e5e7eb;">';
+                        newBody += '<td class="tp-id-cell" data-id="' + hub.id + '" style="padding: 10px; font-weight: 500; position: sticky; left: 0; background: ' + rowBg + '; z-index: 5;">' + displayValue + '</td>';
+                        
+                        let rowTotal = 0;
+                        hubData.periods.sort().forEach(period => {
+                            const periodData = hubData.periodData[hub.id] && hubData.periodData[hub.id][period] ? 
+                                              (isDocsTable ? hubData.periodData[hub.id][period].docs : hubData.periodData[hub.id][period].kcs) : 0;
+                            rowTotal += periodData;
+                            const cellBg = periodData > 0 ? 'background: rgba(59, 130, 246, 0.1);' : '';
+                            newBody += '<td style="padding: 10px; text-align: right; ' + cellBg + '">' + (periodData > 0 ? periodData.toLocaleString() : '-') + '</td>';
+                        });
+                        
+                        newBody += '<td style="padding: 10px; text-align: right; font-weight: 600; background: #e6f7ff;">' + rowTotal.toLocaleString() + '</td>';
+                        newBody += '</tr>';
+                    });
+                
+                tbody.innerHTML = newBody;
+            }
         };
         
         window.updateAllTablesWithCrossRef = function() {
@@ -6886,6 +7155,9 @@ The data shows operational activity patterns across multiple dimensions...`;
         
         // Extract hub data
         const hubData = this.extractHubData(data);
+        
+        // Store hubData globally for table updates
+        window.hubData = hubData;
         
         if (!hubData || hubData.hubCount === 0) {
             html += `
@@ -7965,31 +8237,96 @@ The data shows operational activity patterns across multiple dimensions...`;
             // Get cross-reference data
             const crossRef = getCrossReference();
             
-            if (!crossRef) return;
+            if (!crossRef && mode !== 'id') return;
             
-            // Update chart labels based on mode
-            const newLabels = window.hubChartData.hubIds.map(id => {
-                if (id === 'Others') return 'Others';
+            let newLabels, newDocData, newKcData, newColors;
+            
+            if (mode === 'region' && crossRef) {
+                // Group data by region
+                const regionData = {};
+                const othersIndex = window.hubChartData.hubIds.indexOf('Others');
+                let othersDoc = 0;
+                let othersKc = 0;
                 
-                if (crossRef[id]) {
-                    const xref = crossRef[id];
-                    if (mode === 'name' && xref.name) {
-                        return xref.name;
-                    } else if (mode === 'region' && xref.region) {
-                        return xref.region;
+                window.hubChartData.hubIds.forEach((id, index) => {
+                    if (id === 'Others') {
+                        othersDoc = window.hubChartData.docData[index];
+                        othersKc = window.hubChartData.kcData[index];
+                        return;
                     }
+                    
+                    let regionKey = id; // Default to ID if no region found
+                    if (crossRef[id] && crossRef[id].region) {
+                        regionKey = crossRef[id].region;
+                    }
+                    
+                    if (!regionData[regionKey]) {
+                        regionData[regionKey] = {
+                            docs: 0,
+                            kcs: 0
+                        };
+                    }
+                    
+                    regionData[regionKey].docs += window.hubChartData.docData[index];
+                    regionData[regionKey].kcs += window.hubChartData.kcData[index];
+                });
+                
+                // Sort regions by document count (descending)
+                const sortedRegions = Object.entries(regionData)
+                    .sort((a, b) => b[1].docs - a[1].docs);
+                
+                // Extract grouped data
+                newLabels = sortedRegions.map(([region, _]) => region);
+                newDocData = sortedRegions.map(([_, data]) => data.docs);
+                newKcData = sortedRegions.map(([_, data]) => data.kcs);
+                
+                // Add Others if it existed
+                if (othersIndex !== -1) {
+                    newLabels.push('Others');
+                    newDocData.push(othersDoc);
+                    newKcData.push(othersKc);
                 }
-                return id;
-            });
+                
+                // Generate colors for the new number of segments
+                newColors = window.hubChartData.colors.slice(0, newLabels.length);
+                if (newLabels.length > window.hubChartData.colors.length) {
+                    // Generate additional colors if needed
+                    const additionalColors = [];
+                    for (let i = window.hubChartData.colors.length; i < newLabels.length; i++) {
+                        additionalColors.push('hsl(' + ((i * 360 / newLabels.length) % 360) + ', 70%, 60%)');
+                    }
+                    newColors = [...window.hubChartData.colors, ...additionalColors];
+                }
+            } else {
+                // For ID and Name modes, just update labels without grouping
+                newLabels = window.hubChartData.hubIds.map(id => {
+                    if (id === 'Others') return 'Others';
+                    
+                    if (crossRef && crossRef[id]) {
+                        const xref = crossRef[id];
+                        if (mode === 'name' && xref.name) {
+                            return xref.name;
+                        }
+                    }
+                    return id;
+                });
+                newDocData = window.hubChartData.docData;
+                newKcData = window.hubChartData.kcData;
+                newColors = window.hubChartData.colors;
+            }
             
             // Update both charts
             if (window.hubChartData.charts.docChart) {
                 window.hubChartData.charts.docChart.data.labels = newLabels;
+                window.hubChartData.charts.docChart.data.datasets[0].data = newDocData;
+                window.hubChartData.charts.docChart.data.datasets[0].backgroundColor = newColors.slice(0, newLabels.length);
                 window.hubChartData.charts.docChart.update();
             }
             
             if (window.hubChartData.charts.kcChart) {
                 window.hubChartData.charts.kcChart.data.labels = newLabels;
+                window.hubChartData.charts.kcChart.data.datasets[0].data = newKcData;
+                window.hubChartData.charts.kcChart.data.datasets[0].backgroundColor = newColors.slice(0, newLabels.length);
                 window.hubChartData.charts.kcChart.update();
             }
         };
@@ -8213,72 +8550,140 @@ The data shows operational activity patterns across multiple dimensions...`;
             // Get cross-reference data for labels
             const crossRef = getCrossReference();
             
-            // Update Document Trend Chart
-            const docChart = Chart.getChart('hubDocTrendChart');
-            if (docChart) {
-                const datasets = selectedHubs.map((hubId, index) => {
-                    const data = window.hubTrendData.periods.map(period => 
-                        window.hubTrendData.periodData[hubId] && window.hubTrendData.periodData[hubId][period] ?
-                        window.hubTrendData.periodData[hubId][period].docs : 0
-                    );
-                    
-                    // Determine label based on display mode
-                    let label = hubId;
-                    if (crossRef && crossRef[hubId] && window.hubTrendDisplayMode) {
-                        const xref = crossRef[hubId];
-                        if (window.hubTrendDisplayMode === 'name' && xref.name) {
-                            label = xref.name;
-                        } else if (window.hubTrendDisplayMode === 'region' && xref.region) {
-                            label = xref.region;
-                        }
+            // If in region mode and crossRef exists, group hubs by region
+            if (window.hubTrendDisplayMode === 'region' && crossRef) {
+                // Group selected hubs by region
+                const regionGroups = {};
+                selectedHubs.forEach(hubId => {
+                    let regionKey = hubId; // Default to ID if no region found
+                    if (crossRef[hubId] && crossRef[hubId].region) {
+                        regionKey = crossRef[hubId].region;
                     }
                     
-                    return {
-                        label: label,
-                        data: data,
-                        borderColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length],
-                        backgroundColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length].replace('0.8', '0.2'),
-                        borderWidth: 2,
-                        tension: 0.1
-                    };
-                });
-                
-                docChart.data.datasets = datasets;
-                docChart.update();
-            }
-            
-            // Update KC Trend Chart
-            const kcChart = Chart.getChart('hubKcTrendChart');
-            if (kcChart) {
-                const datasets = selectedHubs.map((hubId, index) => {
-                    const data = window.hubTrendData.periods.map(period => 
-                        window.hubTrendData.periodData[hubId] && window.hubTrendData.periodData[hubId][period] ?
-                        window.hubTrendData.periodData[hubId][period].kcs : 0
-                    );
-                    
-                    // Determine label based on display mode (same as doc chart)
-                    let label = hubId;
-                    if (crossRef && crossRef[hubId] && window.hubTrendDisplayMode) {
-                        const xref = crossRef[hubId];
-                        if (window.hubTrendDisplayMode === 'name' && xref.name) {
-                            label = xref.name;
-                        } else if (window.hubTrendDisplayMode === 'region' && xref.region) {
-                            label = xref.region;
-                        }
+                    if (!regionGroups[regionKey]) {
+                        regionGroups[regionKey] = [];
                     }
-                    
-                    return {
-                        label: label,
-                        data: data,
-                        borderColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length],
-                        backgroundColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length].replace('0.8', '0.2'),
-                        borderWidth: 2,
-                        tension: 0.1
-                    };
+                    regionGroups[regionKey].push(hubId);
                 });
                 
-                kcChart.data.datasets = datasets;
-                kcChart.update();
+                // Update Document Trend Chart
+                const docChart = Chart.getChart('hubDocTrendChart');
+                if (docChart) {
+                    const datasets = Object.entries(regionGroups).map(([region, hubIds], index) => {
+                        const data = window.hubTrendData.periods.map(period => {
+                            // Sum data for all hubs in this region
+                            return hubIds.reduce((sum, hubId) => {
+                                return sum + (window.hubTrendData.periodData[hubId] && 
+                                    window.hubTrendData.periodData[hubId][period] ?
+                                    window.hubTrendData.periodData[hubId][period].docs : 0);
+                            }, 0);
+                        });
+                        
+                        return {
+                            label: region,
+                            data: data,
+                            borderColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length],
+                            backgroundColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length].replace('0.8', '0.2'),
+                            borderWidth: 2,
+                            tension: 0.1
+                        };
+                    });
+                    
+                    docChart.data.datasets = datasets;
+                    docChart.update();
+                }
+                
+                // Update KC Trend Chart
+                const kcChart = Chart.getChart('hubKcTrendChart');
+                if (kcChart) {
+                    const datasets = Object.entries(regionGroups).map(([region, hubIds], index) => {
+                        const data = window.hubTrendData.periods.map(period => {
+                            // Sum data for all hubs in this region
+                            return hubIds.reduce((sum, hubId) => {
+                                return sum + (window.hubTrendData.periodData[hubId] && 
+                                    window.hubTrendData.periodData[hubId][period] ?
+                                    window.hubTrendData.periodData[hubId][period].kcs : 0);
+                            }, 0);
+                        });
+                        
+                        return {
+                            label: region,
+                            data: data,
+                            borderColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length],
+                            backgroundColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length].replace('0.8', '0.2'),
+                            borderWidth: 2,
+                            tension: 0.1
+                        };
+                    });
+                    
+                    kcChart.data.datasets = datasets;
+                    kcChart.update();
+                }
+            } else {
+                // ID or Name mode - no grouping needed
+                // Update Document Trend Chart
+                const docChart = Chart.getChart('hubDocTrendChart');
+                if (docChart) {
+                    const datasets = selectedHubs.map((hubId, index) => {
+                        const data = window.hubTrendData.periods.map(period => 
+                            window.hubTrendData.periodData[hubId] && window.hubTrendData.periodData[hubId][period] ?
+                            window.hubTrendData.periodData[hubId][period].docs : 0
+                        );
+                        
+                        // Determine label based on display mode
+                        let label = hubId;
+                        if (crossRef && crossRef[hubId] && window.hubTrendDisplayMode) {
+                            const xref = crossRef[hubId];
+                            if (window.hubTrendDisplayMode === 'name' && xref.name) {
+                                label = xref.name;
+                            }
+                        }
+                        
+                        return {
+                            label: label,
+                            data: data,
+                            borderColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length],
+                            backgroundColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length].replace('0.8', '0.2'),
+                            borderWidth: 2,
+                            tension: 0.1
+                        };
+                    });
+                    
+                    docChart.data.datasets = datasets;
+                    docChart.update();
+                }
+                
+                // Update KC Trend Chart
+                const kcChart = Chart.getChart('hubKcTrendChart');
+                if (kcChart) {
+                    const datasets = selectedHubs.map((hubId, index) => {
+                        const data = window.hubTrendData.periods.map(period => 
+                            window.hubTrendData.periodData[hubId] && window.hubTrendData.periodData[hubId][period] ?
+                            window.hubTrendData.periodData[hubId][period].kcs : 0
+                        );
+                        
+                        // Determine label based on display mode (same as doc chart)
+                        let label = hubId;
+                        if (crossRef && crossRef[hubId] && window.hubTrendDisplayMode) {
+                            const xref = crossRef[hubId];
+                            if (window.hubTrendDisplayMode === 'name' && xref.name) {
+                                label = xref.name;
+                            }
+                        }
+                        
+                        return {
+                            label: label,
+                            data: data,
+                            borderColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length],
+                            backgroundColor: window.hubTrendData.colors[index % window.hubTrendData.colors.length].replace('0.8', '0.2'),
+                            borderWidth: 2,
+                            tension: 0.1
+                        };
+                    });
+                    
+                    kcChart.data.datasets = datasets;
+                    kcChart.update();
+                }
             }
         }
         

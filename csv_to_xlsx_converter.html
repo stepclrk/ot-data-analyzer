@@ -561,11 +561,32 @@
                         
                         // Process header (clean up column names)
                         if (!headerProcessed && row.length > 0) {
-                            const cleanedRow = row.map(cell => {
+                            const cleanedRow = row.map((cell, index) => {
                                 let cleaned = cell.replace(/"/g, '').trim();
-                                // Rename OUB to OUT
-                                if (cleaned === 'OUB-KCS') cleaned = 'OUT-KCS';
-                                if (cleaned === 'OUB-DOC') cleaned = 'OUT-DOC';
+                                
+                                // Standardize headers for specific sheets
+                                if (section === 'HUB ID SUMMARY') {
+                                    // Hub Summary headers
+                                    if (index === 0) cleaned = 'HUB ID';
+                                    else if (cleaned === 'OUB-KCS') cleaned = 'OUT-KCS';
+                                    else if (cleaned === 'OUB-DOC') cleaned = 'OUT-DOC';
+                                } else if (section === 'TRADING PARTNER SUMMARY') {
+                                    // TP Summary headers
+                                    if (index === 0) cleaned = 'TP ID';
+                                    else if (cleaned === 'OUB-KCS') cleaned = 'OUT-KCS';
+                                    else if (cleaned === 'OUB-DOC') cleaned = 'OUT-DOC';
+                                } else if (section === 'TRADING PARTNER/DOCUMENT SUMMARY') {
+                                    // TP Doc Summary headers
+                                    if (index === 0) cleaned = 'TP ID';
+                                    else if (index === 1) cleaned = 'DOCS';
+                                    else if (cleaned === 'OUB-KCS') cleaned = 'OUT-KCS';
+                                    else if (cleaned === 'OUB-DOC') cleaned = 'OUT-DOC';
+                                } else {
+                                    // Default OUB to OUT renaming for other sections
+                                    if (cleaned === 'OUB-KCS') cleaned = 'OUT-KCS';
+                                    if (cleaned === 'OUB-DOC') cleaned = 'OUT-DOC';
+                                }
+                                
                                 return cleaned;
                             });
                             sectionData.push(cleanedRow);

@@ -9678,6 +9678,12 @@ The data shows operational activity patterns across multiple dimensions...`;
             <!-- Distribution will be dynamically updated -->
         </div>`;
         
+        // Missing TPs section - only shown when filtered
+        html += `
+        <div style="display: none; margin-bottom: 40px;" id="missingTPsSection">
+            <!-- Missing TPs will be dynamically updated -->
+        </div>`;
+        
         // Table container - will be dynamically populated
         html += `<div id="tprTableContainer" style="margin-bottom: 40px;">
             <!-- Table will be dynamically updated -->
@@ -9782,6 +9788,9 @@ The data shows operational activity patterns across multiple dimensions...`;
             // Update distribution
             updateTPRDistribution(records);
             
+            // Update missing TPs section
+            updateMissingTPs(isFiltered, records, allRecords);
+            
             // Update table
             updateTPRTable(records);
         };
@@ -9869,6 +9878,130 @@ The data shows operational activity patterns across multiple dimensions...`;
             
             html += '</div>';
             container.innerHTML = html;
+        };
+        
+        window.updateMissingTPs = function(isFiltered, records, allRecords) {
+            const section = document.getElementById('missingTPsSection');
+            if (!section) return;
+            
+            // Only show when filtered and we have active TPs
+            if (!isFiltered || !window.activeTPs || window.activeTPs.size === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            // Get TP IDs from TPR records - normalize them
+            const ediAddressColumn = window.tprData.columns.find(col => /partner.*edi.*address/i.test(col));
+            const tprTPIds = new Set();
+            
+            allRecords.forEach(record => {
+                const ediAddress = ediAddressColumn ? (record[ediAddressColumn] || '').trim() : '';
+                if (ediAddress) {
+                    // Store multiple normalized forms of the ID for flexible matching
+                    const withoutColon = ediAddress.replace(/^:/, '').trim();
+                    
+                    // Add the original (uppercase)
+                    tprTPIds.add(ediAddress.toUpperCase());
+                    
+                    // Add without leading colon
+                    tprTPIds.add(withoutColon.toUpperCase());
+                    
+                    // Add without 14: or 12: prefix
+                    const withoutPrefix = withoutColon.replace(/^14:/, '').replace(/^12:/, '').trim();
+                    if (withoutPrefix !== withoutColon) {
+                        tprTPIds.add(withoutPrefix.toUpperCase());
+                    }
+                }
+            });
+            
+            // Get unique base TPs from billing data (removing duplicates and variations)
+            const billingTPsMap = new Map(); // Use map to track original case
+            const processedIds = new Set(); // Track what we've already processed
+            
+            window.activeTPs.forEach(tp => {
+                if (!tp) return;
+                
+                // Remove prefixes and normalize
+                const cleanTp = tp.replace(/^:/, '').replace(/^14:/, '').replace(/^12:/, '').trim();
+                
+                // Skip if empty or contains path separator
+                if (!cleanTp || cleanTp.includes('/')) return;
+                
+                const upperKey = cleanTp.toUpperCase();
+                
+                // Skip if we've already processed this ID
+                if (processedIds.has(upperKey)) return;
+                processedIds.add(upperKey);
+                
+                // Add to map - we want to keep the first occurrence we see
+                billingTPsMap.set(upperKey, cleanTp);
+            });
+            
+            // Find TPs that are in billing data but not in TPR
+            const missingTPs = [];
+            billingTPsMap.forEach((originalCase, upperKey) => {
+                // Check multiple possible forms in TPR
+                const found = tprTPIds.has(upperKey) ||                    // Direct match
+                             tprTPIds.has('14:' + upperKey) ||             // With 14: prefix
+                             tprTPIds.has('12:' + upperKey) ||             // With 12: prefix
+                             tprTPIds.has(':' + upperKey);                 // With : prefix
+                
+                if (!found) {
+                    missingTPs.push(originalCase);
+                }
+            });
+            
+            // Sort the missing TPs
+            const uniqueMissingTPs = missingTPs.sort();
+            
+            console.log('Missing TP Detection:');
+            console.log('- Billing TPs found:', billingTPsMap.size);
+            console.log('- TPR TPs found:', tprTPIds.size);
+            console.log('- Missing TPs count:', uniqueMissingTPs.length);
+            console.log('- Missing TPs:', uniqueMissingTPs);
+            
+            // Debug: Show first 5 billing TPs and first 5 TPR TPs
+            if (billingTPsMap.size > 0) {
+                const billingTPsSample = Array.from(billingTPsMap.entries()).slice(0, 5);
+                console.log('Sample billing TPs (uppercase, original):', billingTPsSample);
+            }
+            if (tprTPIds.size > 0) {
+                const tprTPsSample = Array.from(tprTPIds).slice(0, 5);
+                console.log('Sample TPR TPs (uppercase):', tprTPsSample);
+            }
+            
+            if (uniqueMissingTPs.length > 0) {
+                section.style.display = 'block';
+                
+                let html = '<div style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); ';
+                html += 'border: 1px solid #f87171; padding: 20px; border-radius: 10px;">';
+                html += '<h4 style="color: #991b1b; margin-top: 0; margin-bottom: 15px;">';
+                html += '⚠️ Missing Trading Partners (' + uniqueMissingTPs.length + ')';
+                html += '</h4>';
+                html += '<p style="color: #7f1d1d; margin-bottom: 15px; font-size: 0.9em;">';
+                html += 'The following Trading Partners exist in your billing data but are not found in the TPR:';
+                html += '</p>';
+                html += '<div style="display: flex; flex-wrap: wrap; gap: 8px;">';
+                
+                uniqueMissingTPs.forEach(tp => {
+                    html += '<span style="background: white; border: 1px solid #fca5a5; ';
+                    html += 'padding: 5px 12px; border-radius: 6px; font-size: 0.85em; ';
+                    html += 'color: #991b1b; font-weight: 500;">' + tp + '</span>';
+                });
+                
+                html += '</div>';
+                html += '</div>';
+                
+                section.innerHTML = html;
+            } else {
+                section.style.display = 'block';
+                section.innerHTML = '<div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); ' +
+                                   'border: 1px solid #86efac; padding: 20px; border-radius: 10px;">' +
+                                   '<h4 style="color: #166534; margin-top: 0; margin-bottom: 10px;">✅ All Trading Partners Found</h4>' +
+                                   '<p style="color: #14532d; margin: 0; font-size: 0.9em;">' +
+                                   'All Trading Partners from your billing data are present in the TPR.</p>' +
+                                   '</div>';
+            }
         };
         
         window.updateTPRTable = function(records) {

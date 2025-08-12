@@ -11225,9 +11225,32 @@ The data shows operational activity patterns across multiple dimensions...`;
                 </span>
             </h3>`;
         
+        // Add filter checkbox for active TPs
+        const activeTPs = this.getActiveTPsFromData(data);
+        const hasActiveTPs = activeTPs && activeTPs.size > 0;
+        
+        if (hasActiveTPs) {
+            html += `
+            <div style="background: #f0f9ff; border: 1px solid #0ea5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="filterMapActiveTPsToggle" onchange="toggleMapActiveTPFilter()" style="width: 20px; height: 20px; cursor: pointer;">
+                        <label for="filterMapActiveTPsToggle" style="cursor: pointer; font-weight: 500; color: #0369a1;">
+                            🎯 Show only Trading Partners with billing activity
+                        </label>
+                    </div>
+                    <div id="mapFilterStatus" style="font-size: 0.9em; color: #64748b;"></div>
+                </div>
+            </div>`;
+        }
+        
+        
+        html += `
+            <div id="mapAnalysisContent">`;
+        
         // Summary section
         html += `
-        <div class="info-box" style="margin-bottom: 30px;">
+        <div class="info-box" style="margin-bottom: 30px;" id="mapSummarySection">
             <h4 style="margin-top: 0; color: #2d3748;">📊 Map Usage Summary</h4>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
                 <div style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); padding: 20px; border-radius: 10px; border: 1px solid #0ea5e9;">
@@ -11387,8 +11410,434 @@ The data shows operational activity patterns across multiple dimensions...`;
             </div>
         </div>`;
         
-        html += `</div>`;
+        html += `</div>`; // Close mapAnalysisContent div
+        html += `</div>`; // Close main container div
+        
+        // Add the script for filtering and weight analysis
+        html += `
+        <script>
+            // Store the original map data and active TPs
+            window.mapOriginalData = ${JSON.stringify(window.mapData.raw)};
+            window.mapActiveTPs = ${activeTPs ? `new Set(${JSON.stringify(Array.from(activeTPs))})` : 'null'};
+            window.analyzerData = ${data ? JSON.stringify(data) : 'null'};
+            
+            // Inline version of processMapData function
+            function processMapDataInline(data) {
+                const analysis = {
+                    maps: {},           // Map name -> details
+                    tpUsage: {},        // TP ID -> maps they use
+                    docTypes: {},       // Document type -> maps
+                    summary: {
+                        totalMaps: 0,
+                        totalTPs: new Set(),
+                        totalDocTypes: new Set(),
+                        totalTransactions: data.length
+                    }
+                };
+                
+                // Process each transaction
+                data.forEach(row => {
+                        const mapName = row['Map Name'];
+                        const docType = row['Document Type'];
+                        const direction = row['Direction'];
+                        const senderId = row['Sender ID'];
+                        const receiverId = row['Receiver ID'];
+                        
+                        // Determine TP ID based on direction
+                        const tpId = direction === 'Outbound' ? receiverId : senderId;
+                        
+                        // Initialize map entry if not exists
+                        if (!analysis.maps[mapName]) {
+                            analysis.maps[mapName] = {
+                                docType: docType,
+                                tps: new Set(),
+                                directions: { inbound: 0, outbound: 0 },
+                                transactions: 0
+                            };
+                        }
+                        
+                        // Update map data
+                        analysis.maps[mapName].tps.add(tpId);
+                        analysis.maps[mapName].directions[direction.toLowerCase()]++;
+                        analysis.maps[mapName].transactions++;
+                        
+                        // Initialize TP usage if not exists
+                        if (!analysis.tpUsage[tpId]) {
+                            analysis.tpUsage[tpId] = {
+                                maps: new Set(),
+                                docTypes: new Set(),
+                                transactions: 0
+                            };
+                        }
+                        
+                        // Update TP usage
+                        analysis.tpUsage[tpId].maps.add(mapName);
+                        analysis.tpUsage[tpId].docTypes.add(docType);
+                        analysis.tpUsage[tpId].transactions++;
+                        
+                        // Initialize doc type entry if not exists
+                        if (!analysis.docTypes[docType]) {
+                            analysis.docTypes[docType] = {
+                                maps: new Set(),
+                                tps: new Set(),
+                                transactions: 0
+                            };
+                        }
+                        
+                        // Update doc type data
+                        analysis.docTypes[docType].maps.add(mapName);
+                        analysis.docTypes[docType].tps.add(tpId);
+                        analysis.docTypes[docType].transactions++;
+                        
+                        // Update summary
+                        analysis.summary.totalTPs.add(tpId);
+                        analysis.summary.totalDocTypes.add(docType);
+                    });
+                    
+                    // Convert Sets to counts for summary
+                    analysis.summary.totalMaps = Object.keys(analysis.maps).length;
+                    analysis.summary.totalTPs = analysis.summary.totalTPs.size;
+                    analysis.summary.totalDocTypes = analysis.summary.totalDocTypes.size;
+                    
+                    // Convert Sets to arrays for easier handling
+                    Object.values(analysis.maps).forEach(map => {
+                        map.tps = Array.from(map.tps);
+                    });
+                    
+                    Object.values(analysis.tpUsage).forEach(tp => {
+                        tp.maps = Array.from(tp.maps);
+                        tp.docTypes = Array.from(tp.docTypes);
+                    });
+                    
+                    Object.values(analysis.docTypes).forEach(doc => {
+                        doc.maps = Array.from(doc.maps);
+                        doc.tps = Array.from(doc.tps);
+                    });
+                    
+                    return analysis;
+            }
+            
+            window.toggleMapActiveTPFilter = function() {
+                const checkbox = document.getElementById('filterMapActiveTPsToggle');
+                const isFiltered = checkbox ? checkbox.checked : false;
+                updateMapAnalysisDisplay(isFiltered);
+            }
+            
+            function updateMapAnalysisDisplay(isFiltered) {
+                const filterStatus = document.getElementById('mapFilterStatus');
+                const contentDiv = document.getElementById('mapAnalysisContent');
+                
+                let filteredData = window.mapOriginalData;
+                
+                if (isFiltered && window.mapActiveTPs && window.mapActiveTPs.size > 0) {
+                    // Filter the map data to only include active TPs
+                    filteredData = window.mapOriginalData.filter(row => {
+                        // Check both Sender ID and Receiver ID
+                        const senderId = (row['Sender ID'] || '').toString().trim();
+                        const receiverId = (row['Receiver ID'] || '').toString().trim();
+                        
+                        // Check if either sender or receiver is in active TPs
+                        return checkTPMatch(senderId) || checkTPMatch(receiverId);
+                    });
+                    
+                    filterStatus.innerHTML = '✓ Filter active: Showing <strong>' + filteredData.length + '</strong> map transactions with billing activity (from ' + window.mapOriginalData.length + ' total)';
+                } else {
+                    filterStatus.innerHTML = '○ Filter inactive: Showing all <strong>' + window.mapOriginalData.length + '</strong> map transactions';
+                }
+                
+                // Re-process and render the filtered data
+                const mapAnalysis = processMapDataInline(filteredData);
+                renderMapAnalysisContent(mapAnalysis);
+            }
+            
+            function checkTPMatch(tpId) {
+                    if (!tpId || !window.mapActiveTPs) return false;
+                    
+                    // Clean and check variations
+                    const baseId = tpId.replace(/^:/, '').trim();
+                    const variations = [
+                        tpId,
+                        baseId,
+                        baseId.replace(/^14:/, '').trim(),
+                        baseId.replace(/^12:/, '').trim(),
+                        baseId.split('/')[0].trim(),
+                        baseId.toUpperCase(),
+                        baseId.toLowerCase(),
+                        ':' + baseId,
+                        ':' + baseId.toUpperCase(),
+                        ':' + baseId.toLowerCase()
+                    ];
+                    
+                    return variations.some(v => window.mapActiveTPs.has(v));
+            }
+            
+            function renderMapAnalysisContent(mapAnalysis) {
+                    const summary = mapAnalysis.summary;
+                    
+                    // Generate the complete content HTML
+                    let html = '';
+                    
+                    // Summary section
+                    html += '<div class="info-box" style="margin-bottom: 30px;" id="mapSummarySection">';
+                    html += '<h4 style="margin-top: 0; color: #2d3748;">📊 Map Usage Summary</h4>';
+                    html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">';
+                    html += '<div style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); padding: 20px; border-radius: 10px; border: 1px solid #0ea5e9;">';
+                    html += '<div style="font-size: 0.9em; color: #0c4a6e; margin-bottom: 5px;">Total Maps</div>';
+                    html += '<div style="font-size: 2em; font-weight: bold; color: #0369a1;">' + summary.totalMaps + '</div>';
+                    html += '</div>';
+                    html += '<div style="background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); padding: 20px; border-radius: 10px; border: 1px solid #c084fc;">';
+                    html += '<div style="font-size: 0.9em; color: #581c87; margin-bottom: 5px;">Trading Partners</div>';
+                    html += '<div style="font-size: 2em; font-weight: bold; color: #7c3aed;">' + summary.totalTPs + '</div>';
+                    html += '</div>';
+                    html += '<div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 10px; border: 1px solid #fbbf24;">';
+                    html += '<div style="font-size: 0.9em; color: #78350f; margin-bottom: 5px;">Document Types</div>';
+                    html += '<div style="font-size: 2em; font-weight: bold; color: #d97706;">' + summary.totalDocTypes + '</div>';
+                    html += '</div>';
+                    html += '<div style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); padding: 20px; border-radius: 10px; border: 1px solid #86efac;">';
+                    html += '<div style="font-size: 0.9em; color: #14532d; margin-bottom: 5px;">Total Transactions</div>';
+                    html += '<div style="font-size: 2em; font-weight: bold; color: #16a34a;">' + summary.totalTransactions.toLocaleString() + '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    // Maps by Document Type
+                    html += '<div style="margin-bottom: 40px;">';
+                    html += '<h4 style="color: #2d3748; margin-bottom: 20px;">📄 Maps by Document Type</h4>';
+                    html += '<div style="display: grid; gap: 15px;">';
+                    
+                    // Sort document types by number of maps
+                    const sortedDocTypes = Object.entries(mapAnalysis.docTypes)
+                        .sort((a, b) => b[1].maps.length - a[1].maps.length);
+                    
+                    sortedDocTypes.slice(0, 10).forEach(([docType, data]) => {
+                        const percentage = ((data.transactions / summary.totalTransactions) * 100).toFixed(1);
+                        
+                        html += '<div style="background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">';
+                        html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">';
+                        html += '<div style="font-weight: 600; color: #1e293b; font-size: 1.1em;">' + docType + '</div>';
+                        html += '<div style="display: flex; gap: 15px;">';
+                        html += '<span style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">' + data.maps.length + ' maps</span>';
+                        html += '<span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">' + data.tps.length + ' TPs</span>';
+                        html += '<span style="background: #ecfdf5; color: #065f46; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">' + percentage + '% volume</span>';
+                        html += '</div>';
+                        html += '</div>';
+                        html += '<div style="font-size: 0.9em; color: #64748b;">Maps: ' + data.maps.slice(0, 3).join(', ') + (data.maps.length > 3 ? '...' : '') + '</div>';
+                        html += '</div>';
+                    });
+                    
+                    html += '</div></div>';
+                    
+                    // Top Maps by Usage
+                    html += '<div style="margin-bottom: 40px;">';
+                    html += '<h4 style="color: #2d3748; margin-bottom: 20px;">🔝 Top Maps by Trading Partner Usage</h4>';
+                    html += '<div style="overflow-x: auto;">';
+                    html += '<table style="width: 100%; border-collapse: collapse;">';
+                    html += '<thead><tr style="background: #f1f5f9;">';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Map Name</th>';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Document Type</th>';
+                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">TP Count</th>';
+                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Transactions</th>';
+                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Direction</th>';
+                    html += '</tr></thead><tbody>';
+                    
+                    // Sort maps by number of TPs using them
+                    const sortedMaps = Object.entries(mapAnalysis.maps)
+                        .sort((a, b) => b[1].tps.length - a[1].tps.length)
+                        .slice(0, 20);
+                    
+                    sortedMaps.forEach(([mapName, mapData], index) => {
+                        const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                        const directionBadge = mapData.directions.inbound > mapData.directions.outbound 
+                            ? '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↓ Inbound</span>'
+                            : mapData.directions.outbound > mapData.directions.inbound
+                            ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↑ Outbound</span>'
+                            : '<span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↕ Both</span>';
+                        
+                        html += '<tr style="background: ' + rowBg + '; border-bottom: 1px solid #e5e7eb;">';
+                        html += '<td style="padding: 10px; font-weight: 500;">' + mapName + '</td>';
+                        html += '<td style="padding: 10px;">' + mapData.docType + '</td>';
+                        html += '<td style="padding: 10px; text-align: center;"><span style="background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-weight: 600;">' + mapData.tps.length + '</span></td>';
+                        html += '<td style="padding: 10px; text-align: center;">' + mapData.transactions.toLocaleString() + '</td>';
+                        html += '<td style="padding: 10px; text-align: center;">' + directionBadge + '</td>';
+                        html += '</tr>';
+                    });
+                    
+                    html += '</tbody></table></div></div>';
+                    
+                    // Trading Partners by Map Usage
+                    html += '<div style="margin-bottom: 40px;">';
+                    html += '<h4 style="color: #2d3748; margin-bottom: 20px;">🤝 Trading Partners by Map Usage</h4>';
+                    html += '<div style="overflow-x: auto;">';
+                    html += '<table style="width: 100%; border-collapse: collapse;">';
+                    html += '<thead><tr style="background: #f1f5f9;">';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Trading Partner</th>';
+                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Maps Used</th>';
+                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Doc Types</th>';
+                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Transactions</th>';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Primary Maps</th>';
+                    html += '</tr></thead><tbody>';
+                    
+                    // Sort TPs by number of transactions
+                    const sortedTPs = Object.entries(mapAnalysis.tpUsage)
+                        .sort((a, b) => b[1].transactions - a[1].transactions)
+                        .slice(0, 20);
+                    
+                    sortedTPs.forEach(([tpId, tpData], index) => {
+                        const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                        
+                        html += '<tr style="background: ' + rowBg + '; border-bottom: 1px solid #e5e7eb;">';
+                        html += '<td style="padding: 10px; font-weight: 500;">' + tpId + '</td>';
+                        html += '<td style="padding: 10px; text-align: center;"><span style="background: #f3e8ff; color: #6b21a8; padding: 4px 8px; border-radius: 4px; font-weight: 600;">' + tpData.maps.length + '</span></td>';
+                        html += '<td style="padding: 10px; text-align: center;"><span style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-weight: 600;">' + tpData.docTypes.length + '</span></td>';
+                        html += '<td style="padding: 10px; text-align: center;">' + tpData.transactions.toLocaleString() + '</td>';
+                        html += '<td style="padding: 10px; font-size: 0.9em; color: #64748b;">' + tpData.maps.slice(0, 2).join(', ') + (tpData.maps.length > 2 ? '...' : '') + '</td>';
+                        html += '</tr>';
+                    });
+                    
+                    html += '</tbody></table></div></div>';
+                    
+                    // Update the content div
+                    const contentDiv = document.getElementById('mapAnalysisContent');
+                    if (contentDiv) {
+                        contentDiv.innerHTML = html;
+                    }
+                    
+            }
+            
+            // Initialize display
+            setTimeout(function() { 
+                    updateMapAnalysisDisplay(false);
+                }, 100);
+            </scr` + `ipt>`;
+        
         return html;
+    }
+    
+    formatAIInsights(insights) {
+        // Convert markdown-style formatting to HTML
+        let formatted = insights
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/^##\s+(.+)$/gm, '<h2>$1</h2>')
+            .replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
+            .replace(/^-\s+(.+)$/gm, '<li>$1</li>')
+            .replace(/^(\d+)\.\s+(.+)$/gm, '<li>$2</li>')
+            .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+            .replace(/\n\n/g, '</p><p>')
+            .replace(/^/, '<p>')
+            .replace(/$/, '</p>');
+        
+        return formatted;
+    }
+    
+    formatMonthlyChanges(periods, volumes) {
+        if (volumes.length < 2) {
+            return "Insufficient data";
+        }
+        
+        const changes = [];
+        for (let i = 1; i < volumes.length; i++) {
+            if (i < periods.length) {
+                const period = this.formatPeriodDisplay(periods[i]);
+                if (volumes[i-1] > 0) {
+                    const change = ((volumes[i] - volumes[i-1]) / volumes[i-1]) * 100;
+                    changes.push(`\u2022 ${period}: ${change >= 0 ? '+' : ''}${change.toFixed(1)}%`);
+                } else {
+                    changes.push(`\u2022 ${period}: N/A`);
+                }
+            }
+        }
+        
+        return changes.join('<br>') || "No changes to display";
+    }
+    
+    calculatePeriodTotal(data, periods, metric) {
+        let total = 0;
+        
+        if (data.trends && data.trends.Date_Summary) {
+            const trends = data.trends.Date_Summary;
+            if (trends.metric_trends && trends.metric_trends[metric]) {
+                const values = trends.metric_trends[metric];
+                const trendPeriods = trends.periods;
+                
+                for (const period of periods) {
+                    const idx = trendPeriods.indexOf(period);
+                    if (idx >= 0 && idx < values.length) {
+                        total += values[idx] || 0;
+                    }
+                }
+            }
+        }
+        
+        return total;
+    }
+    
+    generateMonthlyComparison(data, periods) {
+        if (periods.length < 2) {
+            return "";
+        }
+        
+        let html = `
+        <div style="margin-bottom: 40px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h4 style="color: #2d3748; margin: 0;">📊 Summary Metrics Comparison</h4>
+            </div>
+        </div>`;
+        
+        return html;
+    }
+    
+    formatAIInsights(insights) {
+        // Convert markdown-style formatting to HTML
+        let formatted = insights
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/^##\s+(.+)$/gm, '<h2>$1</h2>')
+            .replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
+            .replace(/^-\s+(.+)$/gm, '<li>$1</li>')
+            .replace(/^(\d+)\.\s+(.+)$/gm, '<li>$2</li>')
+            .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+            .replace(/\n\n/g, '</p><p>')
+            .replace(/^/, '<p>')
+            .replace(/$/, '</p>');
+        
+        return formatted;
+    }
+    
+    formatMonthlyChanges(periods, volumes) {
+        if (volumes.length < 2) {
+            return "Insufficient data";
+        }
+        
+        const changes = [];
+        for (let i = 1; i < volumes.length; i++) {
+            if (i < periods.length) {
+                const period = this.formatPeriodDisplay(periods[i]);
+                if (volumes[i-1] > 0) {
+                    const change = ((volumes[i] - volumes[i-1]) / volumes[i-1]) * 100;
+                    changes.push(`\u2022 ${period}: ${change >= 0 ? '+' : ''}${change.toFixed(1)}%`);
+                } else {
+                    changes.push(`\u2022 ${period}: N/A`);
+                }
+            }
+        }
+        
+        return changes.join('<br>') || "No changes to display";
+    }
+    
+    calculatePeriodTotal(data, periods, metric) {
+        let total = 0;
+        // Calculate total based on metric
+        periods.forEach(period => {
+            if (data[period]) {
+                if (metric === 'documents') {
+                    total += data[period].documents || 0;
+                } else if (metric === 'kilocharacters') {
+                    total += data[period].kilocharacters || 0;
+                }
+            }
+        });
+        return total;
     }
     
     formatAIInsights(insights) {

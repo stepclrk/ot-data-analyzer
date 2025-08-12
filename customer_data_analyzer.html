@@ -1221,6 +1221,20 @@
                     <button id="removeTpr" style="margin-left: 10px; padding: 5px 10px; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove</button>
                 </div>
             </div>
+            
+            <div class="map-upload-section" style="margin-top: 20px; padding: 20px; background: #f5f0ff; border-radius: 8px; border: 1px solid #e0ccff;">
+                <h3 style="margin-top: 0; color: #2d3748;">Map Transaction File (Optional)</h3>
+                <p style="color: #4a5568; margin-bottom: 15px;">Upload a transaction CSV file to analyze map usage, document types, and trading partners</p>
+                <div class="upload-area" id="mapUploadArea" style="padding: 15px; background: white;">
+                    <p>Drag and drop transaction CSV file here or click to select</p>
+                    <input type="file" id="mapFileInput" accept=".csv" style="display: none;">
+                </div>
+                <div id="mapFileInfo" style="margin-top: 10px; display: none;">
+                    <span style="color: #38a169;">✓ Map transaction file loaded: </span>
+                    <span id="mapFileName"></span>
+                    <button id="removeMap" style="margin-left: 10px; padding: 5px 10px; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove</button>
+                </div>
+            </div>
         
         <div id="fileList" class="file-list"></div>
         
@@ -1475,6 +1489,55 @@ document.addEventListener('DOMContentLoaded', function() {
                     regenerateReportWithTPR(currentReport);
                 }
             }
+        });
+    }
+    
+    // Map file upload functionality
+    const mapUploadArea = document.getElementById('mapUploadArea');
+    const mapFileInput = document.getElementById('mapFileInput');
+    const mapFileInfo = document.getElementById('mapFileInfo');
+    const mapFileName = document.getElementById('mapFileName');
+    const removeMapBtn = document.getElementById('removeMap');
+    
+    if (mapUploadArea && mapFileInput) {
+        // Enable click-to-upload functionality for Map file
+        mapUploadArea.addEventListener('click', () => {
+            mapFileInput.click();
+        });
+        
+        // Handle drag over event - show visual feedback
+        mapUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            mapUploadArea.classList.add('dragover');
+        });
+        
+        // Handle drag leave event - remove visual feedback
+        mapUploadArea.addEventListener('dragleave', () => {
+            mapUploadArea.classList.remove('dragover');
+        });
+        
+        // Handle file drop event
+        mapUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            mapUploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleMapFile(e.dataTransfer.files[0]);
+            }
+        });
+        
+        // Handle file selection via file picker dialog
+        mapFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleMapFile(e.target.files[0]);
+            }
+        });
+        
+        // Handle remove button
+        removeMapBtn.addEventListener('click', () => {
+            window.mapData = null;
+            mapFileInfo.style.display = 'none';
+            mapFileName.textContent = '';
+            mapFileInput.value = '';
         });
     }
 });
@@ -1814,10 +1877,11 @@ async function handleTprFile(file) {
             !/your.*mailbox.*type/i.test(col)
         );
         
-        // Find date columns (typically in YYYY-MM format)
+        // Find date columns (typically in YYYY-MM format, may include (Doc) or (KC) suffixes)
         const dateColumns = columns.filter(col => {
             // Check if column name matches date patterns
             return /^\d{4}-\d{2}$/.test(col) || // YYYY-MM format
+                   /^\d{4}-\d{2}\s*\((Doc|KC)\)$/i.test(col) || // YYYY-MM (Doc) or YYYY-MM (KC) format
                    /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(col) || // Month names
                    /\d{4}.*\d{1,2}|\d{1,2}.*\d{4}/.test(col); // Various date formats
         });
@@ -1946,6 +2010,191 @@ async function handleTprFile(file) {
         document.getElementById('tprFileInfo').style.display = 'none';
         document.getElementById('tprFileName').textContent = '';
         window.tprData = null;
+    }
+}
+
+/**
+ * Handle Map Transaction file upload
+ * @param {File} file - The Map transaction CSV file to process
+ */
+async function handleMapFile(file) {
+    try {
+        const mapFileInfo = document.getElementById('mapFileInfo');
+        const mapFileName = document.getElementById('mapFileName');
+        
+        // Show loading state
+        mapFileName.textContent = 'Loading...';
+        mapFileInfo.style.display = 'block';
+        
+        // Read and parse CSV file
+        const text = await file.text();
+        
+        // Parse CSV using PapaParse
+        const parseResult = Papa.parse(text, {
+            header: true,
+            skipEmptyLines: true,
+            dynamicTyping: true
+        });
+        
+        if (parseResult.errors.length > 0) {
+            console.warn('CSV parsing warnings:', parseResult.errors);
+        }
+        
+        const data = parseResult.data;
+        
+        if (!data || data.length === 0) {
+            throw new Error('No data found in the CSV file');
+        }
+        
+        // Validate required columns
+        const columns = Object.keys(data[0]);
+        const requiredColumns = ['Map Name', 'Document Type', 'Direction', 'Sender ID', 'Receiver ID'];
+        const missingColumns = requiredColumns.filter(col => !columns.includes(col));
+        
+        if (missingColumns.length > 0) {
+            throw new Error('Missing required columns: ' + missingColumns.join(', '));
+        }
+        
+        // Process the map data
+        const mapAnalysis = processMapData(data);
+        
+        // Store the processed data globally
+        window.mapData = {
+            raw: data,
+            analysis: mapAnalysis,
+            fileName: file.name
+        };
+        
+        // Update UI
+        mapFileName.textContent = file.name + ' (' + data.length + ' transactions)';
+        console.log('Map file loaded successfully:', file.name);
+        console.log('Map analysis:', mapAnalysis);
+        
+        // Refresh report if already generated
+        const reportFrame = document.getElementById('reportFrame');
+        if (reportFrame && reportFrame.srcdoc && window.lastAnalysisData && window.analyzer) {
+            regenerateReportWithMap(window.lastAnalysisData);
+        }
+        
+    } catch (error) {
+        console.error('Error processing Map transaction file:', error);
+        alert('Error loading Map transaction file: ' + error.message);
+        
+        // Reset UI
+        document.getElementById('mapFileInfo').style.display = 'none';
+        document.getElementById('mapFileName').textContent = '';
+        window.mapData = null;
+    }
+}
+
+/**
+ * Process map transaction data to extract insights
+ * @param {Array} data - Raw CSV data
+ * @returns {Object} Processed map analysis
+ */
+function processMapData(data) {
+    const analysis = {
+        maps: {},           // Map name -> details
+        tpUsage: {},        // TP ID -> maps they use
+        docTypes: {},       // Document type -> maps
+        summary: {
+            totalMaps: 0,
+            totalTPs: new Set(),
+            totalDocTypes: new Set(),
+            totalTransactions: data.length
+        }
+    };
+    
+    // Process each transaction
+    data.forEach(row => {
+        const mapName = row['Map Name'];
+        const docType = row['Document Type'];
+        const direction = row['Direction'];
+        const senderId = row['Sender ID'];
+        const receiverId = row['Receiver ID'];
+        
+        // Determine TP ID based on direction
+        const tpId = direction === 'Outbound' ? receiverId : senderId;
+        
+        // Initialize map entry if not exists
+        if (!analysis.maps[mapName]) {
+            analysis.maps[mapName] = {
+                docType: docType,
+                tps: new Set(),
+                directions: { inbound: 0, outbound: 0 },
+                transactions: 0
+            };
+        }
+        
+        // Update map data
+        analysis.maps[mapName].tps.add(tpId);
+        analysis.maps[mapName].directions[direction.toLowerCase()]++;
+        analysis.maps[mapName].transactions++;
+        
+        // Initialize TP usage if not exists
+        if (!analysis.tpUsage[tpId]) {
+            analysis.tpUsage[tpId] = {
+                maps: new Set(),
+                docTypes: new Set(),
+                transactions: 0
+            };
+        }
+        
+        // Update TP usage
+        analysis.tpUsage[tpId].maps.add(mapName);
+        analysis.tpUsage[tpId].docTypes.add(docType);
+        analysis.tpUsage[tpId].transactions++;
+        
+        // Initialize doc type entry if not exists
+        if (!analysis.docTypes[docType]) {
+            analysis.docTypes[docType] = {
+                maps: new Set(),
+                tps: new Set(),
+                transactions: 0
+            };
+        }
+        
+        // Update doc type data
+        analysis.docTypes[docType].maps.add(mapName);
+        analysis.docTypes[docType].tps.add(tpId);
+        analysis.docTypes[docType].transactions++;
+        
+        // Update summary
+        analysis.summary.totalTPs.add(tpId);
+        analysis.summary.totalDocTypes.add(docType);
+    });
+    
+    // Convert Sets to counts for summary
+    analysis.summary.totalMaps = Object.keys(analysis.maps).length;
+    analysis.summary.totalTPs = analysis.summary.totalTPs.size;
+    analysis.summary.totalDocTypes = analysis.summary.totalDocTypes.size;
+    
+    // Convert Sets to arrays for easier handling
+    Object.values(analysis.maps).forEach(map => {
+        map.tps = Array.from(map.tps);
+    });
+    
+    Object.values(analysis.tpUsage).forEach(tp => {
+        tp.maps = Array.from(tp.maps);
+        tp.docTypes = Array.from(tp.docTypes);
+    });
+    
+    Object.values(analysis.docTypes).forEach(doc => {
+        doc.maps = Array.from(doc.maps);
+        doc.tps = Array.from(doc.tps);
+    });
+    
+    return analysis;
+}
+
+/**
+ * Regenerate report with Map data
+ * @param {Object} analysisData - The analysis data to use for regeneration
+ */
+function regenerateReportWithMap(analysisData) {
+    if (window.analyzer) {
+        const html = window.analyzer.generateHtmlReport(analysisData);
+        document.getElementById('reportFrame').srcdoc = html;
     }
 }
 
@@ -2681,6 +2930,7 @@ The data shows operational activity patterns across multiple dimensions...`;
         const docAnalysis = this.generateDocumentAnalysis(data);
         const hubAnalysis = this.generateHubAnalysis(data);
         const tprAnalysis = this.generateTprAnalysis(data);
+        const mapAnalysis = this.generateMapAnalysis(data);
         const formattedInsights = this.formatAIInsights(insights);
         
         const insightsContent = `<div class="insights-section">
@@ -4256,6 +4506,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             <button class="tab" onclick="showTab('tpanalysis')">🤝 TP Analysis</button>
             <button class="tab" onclick="showTab('docanalysis')">📄 Document Analysis</button>
             ${tprAnalysis ? '<button class="tab" onclick="showTab(\'tpranalysis\')">📡 TP Communications</button>' : ''}
+            ${mapAnalysis ? '<button class="tab" onclick="showTab(\'mapanalysis\')">🗺️ Map Analysis</button>' : ''}
         </div>
         
         
@@ -4289,6 +4540,13 @@ The data shows operational activity patterns across multiple dimensions...`;
         ${tprAnalysis ? `
         <div id="tpranalysis" class="tab-content">
             ${tprAnalysis}
+        </div>
+        ` : ''}
+        
+        <!-- Map Analysis Tab -->
+        ${mapAnalysis ? `
+        <div id="mapanalysis" class="tab-content">
+            ${mapAnalysis}
         </div>
         ` : ''}
         
@@ -9678,6 +9936,12 @@ The data shows operational activity patterns across multiple dimensions...`;
             <!-- Distribution will be dynamically updated -->
         </div>`;
         
+        // Communication Protocol Weight Analysis
+        html += `
+        <div style="margin-bottom: 40px;" id="tprWeightSection">
+            <!-- Weight analysis will be dynamically updated -->
+        </div>`;
+        
         // Missing TPs section - only shown when filtered
         html += `
         <div style="display: none; margin-bottom: 40px;" id="missingTPsSection">
@@ -9696,6 +9960,8 @@ The data shows operational activity patterns across multiple dimensions...`;
         window.tprData = ${JSON.stringify(tprData)};
         window.tprOriginalRecords = ${JSON.stringify(allRecords)};
         window.activeTPs = ${activeTPs ? `new Set(${JSON.stringify(Array.from(activeTPs))})` : 'null'};
+        // Pass the actual billing data from analyzer.allData instead of data.tp_data
+        window.analyzerData = ${analyzer && analyzer.allData ? JSON.stringify(analyzer.allData) : 'null'};
         
         // Function to update TPR display based on filter
         window.toggleActiveTPFilter = function() {
@@ -9788,6 +10054,9 @@ The data shows operational activity patterns across multiple dimensions...`;
             // Update distribution
             updateTPRDistribution(records);
             
+            // Update weight analysis
+            updateTPRWeightAnalysis(records);
+            
             // Update missing TPs section
             updateMissingTPs(isFiltered, records, allRecords);
             
@@ -9879,6 +10148,509 @@ The data shows operational activity patterns across multiple dimensions...`;
             html += '</div>';
             container.innerHTML = html;
         };
+        
+        window.showWeightView = function(view) {
+            const docsView = document.getElementById('weightDocsView');
+            const kcsView = document.getElementById('weightKCsView');
+            const docsBtn = document.getElementById('weightDocsBtn');
+            const kcsBtn = document.getElementById('weightKCsBtn');
+            
+            if (!docsView || !kcsView || !docsBtn || !kcsBtn) return;
+            
+            if (view === 'docs') {
+                docsView.style.display = 'block';
+                kcsView.style.display = 'none';
+                docsBtn.style.background = '#3b82f6';
+                docsBtn.style.color = 'white';
+                kcsBtn.style.background = '#e5e7eb';
+                kcsBtn.style.color = '#6b7280';
+            } else {
+                docsView.style.display = 'none';
+                kcsView.style.display = 'block';
+                docsBtn.style.background = '#e5e7eb';
+                docsBtn.style.color = '#6b7280';
+                kcsBtn.style.background = '#3b82f6';
+                kcsBtn.style.color = 'white';
+            }
+        };
+        
+        window.updateTPRWeightAnalysis = function(records) {
+            const container = document.getElementById('tprWeightSection');
+            if (!container) return;
+            
+            const tprData = window.tprData;
+            const mailboxColumn = tprData.mailboxTypeColumn;
+            const dateColumns = tprData.dateColumns;
+            
+            // Extract document and KC columns
+            const docColumns = dateColumns.filter(col => col.includes('(Doc)'));
+            const kcColumns = dateColumns.filter(col => col.includes('(KC)'));
+            
+            // If no volume columns in TPR, try to use billing data if available
+            if (docColumns.length === 0 && kcColumns.length === 0) {
+                // Check if we have billing data to calculate weights
+                if (!window.analyzerData) {
+                    container.innerHTML = '<div style="background: #fef3c7; border: 1px solid #fbbf24; padding: 20px; border-radius: 10px; margin-bottom: 20px;">' +
+                        '<h4 style="color: #92400e; margin-top: 0;">⚠️ Volume Data Not Available</h4>' +
+                        '<p style="color: #78350f; margin-bottom: 0;">' +
+                        'The TPR file does not contain monthly volume columns (Doc/KC). ' +
+                        'Load billing data files to see communication protocol weight analysis based on actual transaction volumes.' +
+                        '</p>' +
+                        '</div>';
+                    return;
+                }
+                
+                // Use billing data to calculate weights
+                container.innerHTML = calculateWeightFromBillingData(records);
+                return;
+            }
+            
+            // Calculate totals by communication type
+            const typeData = {};
+            let totalDocs = 0;
+            let totalKCs = 0;
+            
+            records.forEach(record => {
+                const type = record[mailboxColumn] || 'Unknown';
+                
+                if (!typeData[type]) {
+                    typeData[type] = {
+                        docs: 0,
+                        kcs: 0,
+                        count: 0
+                    };
+                }
+                
+                typeData[type].count++;
+                
+                // Sum up document volumes
+                docColumns.forEach(col => {
+                    const value = parseFloat(record[col]) || 0;
+                    typeData[type].docs += value;
+                    totalDocs += value;
+                });
+                
+                // Sum up KC volumes
+                kcColumns.forEach(col => {
+                    const value = parseFloat(record[col]) || 0;
+                    typeData[type].kcs += value;
+                    totalKCs += value;
+                });
+            });
+            
+            // Sort by total weight (docs + kcs normalized)
+            const sortedTypes = Object.entries(typeData)
+                .sort((a, b) => (b[1].docs + b[1].kcs) - (a[1].docs + a[1].kcs));
+            
+            let html = '<div>';
+            html += '<h4 style="color: #2d3748; margin-bottom: 15px;">⚖️ Communication Protocol Weight Analysis</h4>';
+            
+            // Toggle buttons
+            html += '<div style="display: flex; gap: 10px; margin-bottom: 20px;">';
+            html += '<button id="weightDocsBtn" onclick="window.showWeightView(&quot;docs&quot;)" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">Document Weight</button>';
+            html += '<button id="weightKCsBtn" onclick="window.showWeightView(&quot;kcs&quot;)" style="padding: 8px 16px; background: #e5e7eb; color: #6b7280; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">KC Weight</button>';
+            html += '</div>';
+            
+            // Document weight view
+            html += '<div id="weightDocsView" style="display: block;">';
+            html += '<div style="background: #f0f9ff; border: 1px solid #0ea5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">';
+            html += '<div style="color: #0c4a6e; font-weight: 600; margin-bottom: 10px;">📄 Document Volume Distribution</div>';
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
+            
+            sortedTypes.forEach(([type, data]) => {
+                const percentage = totalDocs > 0 ? ((data.docs / totalDocs) * 100).toFixed(2) : '0.00';
+                const color = type.toLowerCase().includes('direct') ? '#059669' :
+                             type.toLowerCase().includes('van') ? '#3b82f6' :
+                             type.toLowerCase().includes('as2') ? '#8b5cf6' :
+                             type.toLowerCase().includes('ftp') ? '#f59e0b' : '#6b7280';
+                
+                const barWidth = totalDocs > 0 ? (data.docs / totalDocs * 100) : 0;
+                
+                html += '<div style="background: white; border: 1px solid #e5e7eb; padding: 15px; border-radius: 8px;">';
+                html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">';
+                html += '<span style="color: ' + color + '; font-weight: 600;">' + type + '</span>';
+                html += '<span style="font-size: 1.2em; font-weight: bold; color: #1e293b;">' + percentage + '%</span>';
+                html += '</div>';
+                html += '<div style="background: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden;">';
+                html += '<div style="background: ' + color + '; height: 100%; width: ' + barWidth + '%; transition: width 0.3s ease;"></div>';
+                html += '</div>';
+                html += '<div style="margin-top: 8px; font-size: 0.85em; color: #64748b;">';
+                html += data.docs.toLocaleString() + ' documents';
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+            
+            // KC weight view
+            html += '<div id="weightKCsView" style="display: none;">';
+            html += '<div style="background: #f0fdf4; border: 1px solid #86efac; padding: 15px; border-radius: 8px; margin-bottom: 15px;">';
+            html += '<div style="color: #14532d; font-weight: 600; margin-bottom: 10px;">📊 Kilocharacter Volume Distribution</div>';
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
+            
+            sortedTypes.forEach(([type, data]) => {
+                const percentage = totalKCs > 0 ? ((data.kcs / totalKCs) * 100).toFixed(2) : '0.00';
+                const color = type.toLowerCase().includes('direct') ? '#059669' :
+                             type.toLowerCase().includes('van') ? '#3b82f6' :
+                             type.toLowerCase().includes('as2') ? '#8b5cf6' :
+                             type.toLowerCase().includes('ftp') ? '#f59e0b' : '#6b7280';
+                
+                const barWidth = totalKCs > 0 ? (data.kcs / totalKCs * 100) : 0;
+                
+                html += '<div style="background: white; border: 1px solid #e5e7eb; padding: 15px; border-radius: 8px;">';
+                html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">';
+                html += '<span style="color: ' + color + '; font-weight: 600;">' + type + '</span>';
+                html += '<span style="font-size: 1.2em; font-weight: bold; color: #1e293b;">' + percentage + '%</span>';
+                html += '</div>';
+                html += '<div style="background: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden;">';
+                html += '<div style="background: ' + color + '; height: 100%; width: ' + barWidth + '%; transition: width 0.3s ease;"></div>';
+                html += '</div>';
+                html += '<div style="margin-top: 8px; font-size: 0.85em; color: #64748b;">';
+                html += data.kcs.toLocaleString() + ' KC';
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+            
+            html += '</div>';
+            container.innerHTML = html;
+            
+            // Add the toggle function
+            window.showWeightView = function(view) {
+                const docsView = document.getElementById('weightDocsView');
+                const kcsView = document.getElementById('weightKCsView');
+                const docsBtn = document.getElementById('weightDocsBtn');
+                const kcsBtn = document.getElementById('weightKCsBtn');
+                
+                if (view === 'docs') {
+                    docsView.style.display = 'block';
+                    kcsView.style.display = 'none';
+                    docsBtn.style.background = '#3b82f6';
+                    docsBtn.style.color = 'white';
+                    kcsBtn.style.background = '#e5e7eb';
+                    kcsBtn.style.color = '#6b7280';
+                } else {
+                    docsView.style.display = 'none';
+                    kcsView.style.display = 'block';
+                    docsBtn.style.background = '#e5e7eb';
+                    docsBtn.style.color = '#6b7280';
+                    kcsBtn.style.background = '#3b82f6';
+                    kcsBtn.style.color = 'white';
+                }
+            };
+        };
+        
+        function calculateWeightFromBillingData(tprRecords) {
+            // Get billing data
+            if (!window.analyzerData) {
+                return '<div style="color: #6b7280;">No billing data available for weight analysis.</div>';
+            }
+            
+            console.log('calculateWeightFromBillingData - TPR records passed:', tprRecords.length);
+            console.log('Analyzer data type:', typeof window.analyzerData);
+            console.log('Analyzer data keys:', window.analyzerData ? Object.keys(window.analyzerData).slice(0, 5) : 'none');
+            
+            // Check if this is the wrong data structure
+            if (window.analyzerData && window.analyzerData.tp_data) {
+                console.log('Found tp_data in analyzerData, using that instead');
+                window.analyzerData = window.analyzerData.tp_data;
+            }
+            
+            console.log('First period data:', window.analyzerData ? Object.keys(window.analyzerData)[0] : 'none');
+            if (window.analyzerData) {
+                const firstPeriod = Object.keys(window.analyzerData)[0];
+                if (firstPeriod) {
+                    console.log('Sheets in first period:', Object.keys(window.analyzerData[firstPeriod] || {}));
+                    if (window.analyzerData[firstPeriod] && window.analyzerData[firstPeriod]['TP_Summary']) {
+                        console.log('TP_Summary structure:', window.analyzerData[firstPeriod]['TP_Summary']);
+                        if (window.analyzerData[firstPeriod]['TP_Summary'].data) {
+                            console.log('First TP_Summary.data row:', window.analyzerData[firstPeriod]['TP_Summary'].data[0]);
+                        }
+                    }
+                }
+            }
+            
+            const tprData = window.tprData;
+            const mailboxColumn = tprData.mailboxTypeColumn;
+            const ediAddressColumn = tprData.columns.find(col => /partner.*edi.*address/i.test(col));
+            
+            // Step 1: Create a mapping from TP EDI addresses to communication types
+            // These TPR records are already filtered to only active TPs
+            const ediToCommType = {};
+            tprRecords.forEach(record => {
+                const ediAddress = record[ediAddressColumn] || '';
+                const commType = record[mailboxColumn] || 'Unknown';
+                if (ediAddress) {
+                    // Store all variations of the EDI address
+                    const baseAddress = ediAddress.replace(/^:/, '').trim();
+                    ediToCommType[ediAddress] = commType;
+                    ediToCommType[baseAddress] = commType;
+                    ediToCommType[baseAddress.toUpperCase()] = commType;
+                    ediToCommType[baseAddress.toLowerCase()] = commType;
+                    ediToCommType[':' + baseAddress] = commType;
+                    ediToCommType[baseAddress.replace(/^14:/, '')] = commType;
+                    ediToCommType[baseAddress.replace(/^12:/, '')] = commType;
+                }
+            });
+            
+            console.log('EDI to CommType mapping created, sample:', Object.entries(ediToCommType).slice(0, 5));
+            
+            // Step 2: Get the active TP IDs from billing data (we know these match the filtered TPR)
+            // We need to use the same TP IDs that were used to filter the TPR
+            const activeTPs = window.activeTPs;
+            if (!activeTPs || activeTPs.size === 0) {
+                return '<div style="color: #6b7280;">No active trading partner data available.</div>';
+            }
+            
+            console.log('Active TPs from billing:', activeTPs.size, 'Sample:', Array.from(activeTPs).slice(0, 5));
+            
+            // Step 3: Build a reverse mapping from billing TP IDs to comm types
+            const tpToCommType = {};
+            let debugMatches = 0;
+            let debugNoMatches = 0;
+            
+            // For each TP in billing data, find its comm type from the TPR
+            Array.from(activeTPs).forEach(tpId => {
+                // Try to find this TP in our EDI mapping
+                let found = false;
+                for (const [edi, commType] of Object.entries(ediToCommType)) {
+                    // Check if this TP ID matches the EDI address in any form
+                    const ediBase = edi.replace(/^:/, '').replace(/^14:/, '').replace(/^12:/, '').trim();
+                    const tpBase = tpId.replace(/^:/, '').replace(/^14:/, '').replace(/^12:/, '').trim();
+                    
+                    if (ediBase.toUpperCase() === tpBase.toUpperCase() || 
+                        edi.toUpperCase() === tpId.toUpperCase()) {
+                        tpToCommType[tpId] = commType;
+                        found = true;
+                        debugMatches++;
+                        if (debugMatches <= 3) {
+                            console.log('Matched billing TP to TPR:', tpId, '=>', commType);
+                        }
+                        break;
+                    }
+                }
+                if (!found) {
+                    debugNoMatches++;
+                    if (debugNoMatches <= 3) {
+                        console.log('No TPR match for billing TP:', tpId);
+                    }
+                }
+            });
+            
+            console.log('TP to CommType mapping created:', Object.keys(tpToCommType).length, 'mappings');
+            console.log('Debug: Matched', debugMatches, 'Not matched', debugNoMatches);
+            
+            // Step 4: Sum up Doc and KC volumes by communication type
+            const typeData = {};
+            let totalDocs = 0;
+            let totalKCs = 0;
+            
+            // Process all billing data periods
+            Object.entries(window.analyzerData).forEach(([period, sheets]) => {
+                // Check if TP_Summary exists and has data array
+                if (sheets && sheets['TP_Summary']) {
+                    const tpSummary = sheets['TP_Summary'];
+                    const tpData = tpSummary.data || tpSummary; // Handle both structures
+                    
+                    if (Array.isArray(tpData)) {
+                        console.log('Processing ' + tpData.length + ' rows from period ' + period);
+                        if (tpData.length > 0) {
+                            console.log('First row keys:', Object.keys(tpData[0]));
+                            console.log('First row sample:', tpData[0]);
+                        }
+                        let rowsWithTP = 0;
+                        let rowsMatched = 0;
+                        
+                        tpData.forEach(row => {
+                        // Find TP ID in the row
+                        let tpId = null;
+                        for (const key of Object.keys(row)) {
+                            if (['Trade_Partner', 'TP_ID', 'TP ID', 'TP-ID', 'Trading Partner'].includes(key.trim())) {
+                                tpId = String(row[key] || '').trim();
+                                if (rowsWithTP === 0) {
+                                    console.log('Found TP ID column:', key, 'Value:', tpId);
+                                }
+                                break;
+                            }
+                        }
+                        
+                        if (!tpId) {
+                            if (rowsWithTP === 0 && rowsMatched === 0) {
+                                console.log('No TP ID found in row. Available columns:', Object.keys(row));
+                            }
+                            return;
+                        }
+                        rowsWithTP++;
+                        
+                        // Find comm type for this TP
+                        let commType = null;
+                        
+                        // Check all variations of the TP ID
+                        const variations = [
+                            tpId,
+                            tpId.replace(/^:/, ''),
+                            tpId.replace(/^14:/, ''),
+                            tpId.replace(/^12:/, ''),
+                            tpId.toUpperCase(),
+                            tpId.toLowerCase(),
+                            ':' + tpId
+                        ];
+                        
+                        for (const variant of variations) {
+                            if (tpToCommType[variant]) {
+                                commType = tpToCommType[variant];
+                                break;
+                            }
+                            // Also check against EDI mapping directly
+                            if (ediToCommType[variant]) {
+                                commType = ediToCommType[variant];
+                                break;
+                            }
+                        }
+                        
+                        if (!commType) return; // Skip TPs not in our filtered set
+                        
+                        rowsMatched++;
+                        
+                        // Initialize type data if needed
+                        if (!typeData[commType]) {
+                            typeData[commType] = {
+                                docs: 0,
+                                kcs: 0,
+                                tps: new Set()
+                            };
+                        }
+                        
+                        // Add volumes (try different column name variations)
+                        const docs = parseFloat(row['TOTAL-DOC'] || row['TOTAL_DOC'] || row['Total_Documents'] || 0);
+                        const kcs = parseFloat(row['TOTAL-KCS'] || row['TOTAL_KCS'] || row['TOTAL-KC'] || row['TOTAL_KC'] || row['Total_KC'] || 0);
+                        
+                        if (rowsMatched === 1) {
+                            console.log('First matched row - checking volume columns:');
+                            console.log('  TOTAL-DOC:', row['TOTAL-DOC']);
+                            console.log('  TOTAL_DOC:', row['TOTAL_DOC']);
+                            console.log('  All columns in row:', Object.keys(row));
+                            console.log('  Extracted docs:', docs, 'kcs:', kcs);
+                        }
+                        
+                        typeData[commType].docs += docs;
+                        typeData[commType].kcs += kcs;
+                        typeData[commType].tps.add(tpId);
+                        
+                        totalDocs += docs;
+                        totalKCs += kcs;
+                    });
+                        console.log('Period ' + period + ': Found TPs in ' + rowsWithTP + ' rows, matched ' + rowsMatched);
+                    }
+                }
+            });
+            
+            console.log('Volume data collected:', typeData);
+            console.log('Total Docs:', totalDocs, 'Total KCs:', totalKCs);
+            
+            // Sort by total volume (docs + kcs normalized)
+            const sortedTypes = Object.entries(typeData)
+                .sort((a, b) => (b[1].docs + b[1].kcs) - (a[1].docs + a[1].kcs));
+            
+            if (sortedTypes.length === 0) {
+                return '<div style="color: #6b7280;">Unable to calculate weight - no volume data found for active TPs.</div>';
+            }
+            
+            // Generate HTML
+            let html = '<div>';
+            html += '<h4 style="color: #2d3748; margin-bottom: 15px;">⚖️ Communication Protocol Weight Analysis</h4>';
+            html += '<div style="background: #e0f2fe; border: 1px solid #0284c7; padding: 10px; border-radius: 6px; margin-bottom: 15px;">';
+            html += '<div style="color: #075985; font-size: 0.9em;">📊 Volume distribution across communication protocols</div>';
+            html += '</div>';
+            
+            // Toggle buttons
+            html += '<div style="display: flex; gap: 10px; margin-bottom: 20px;">';
+            html += '<button id="weightDocsBtn" onclick="window.showWeightView(&quot;docs&quot;)" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">Document Weight</button>';
+            html += '<button id="weightKCsBtn" onclick="window.showWeightView(&quot;kcs&quot;)" style="padding: 8px 16px; background: #e5e7eb; color: #6b7280; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">KC Weight</button>';
+            html += '</div>';
+            
+            // Document weight view
+            html += '<div id="weightDocsView" style="display: block;">';
+            html += '<div style="background: #f0f9ff; border: 1px solid #0ea5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">';
+            html += '<div style="color: #0c4a6e; font-weight: 600; margin-bottom: 10px;">📄 Document Volume Distribution</div>';
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
+            
+            sortedTypes.forEach(([type, data]) => {
+                const percentage = totalDocs > 0 ? ((data.docs / totalDocs) * 100).toFixed(2) : '0.00';
+                const color = type.toLowerCase().includes('direct') ? '#059669' :
+                             type.toLowerCase().includes('van') ? '#3b82f6' :
+                             type.toLowerCase().includes('as2') ? '#8b5cf6' :
+                             type.toLowerCase().includes('ftp') ? '#f59e0b' :
+                             type.toLowerCase().includes('api') ? '#ec4899' :
+                             type.toLowerCase().includes('https') ? '#10b981' : '#6b7280';
+                
+                const barWidth = totalDocs > 0 ? (data.docs / totalDocs * 100) : 0;
+                
+                html += '<div style="background: white; border: 1px solid #e5e7eb; padding: 15px; border-radius: 8px;">';
+                html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">';
+                html += '<span style="color: ' + color + '; font-weight: 600;">' + type + '</span>';
+                html += '<span style="font-size: 1.2em; font-weight: bold; color: #1e293b;">' + percentage + '%</span>';
+                html += '</div>';
+                html += '<div style="background: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden;">';
+                html += '<div style="background: ' + color + '; height: 100%; width: ' + barWidth + '%; transition: width 0.3s ease;"></div>';
+                html += '</div>';
+                html += '<div style="margin-top: 8px; font-size: 0.85em; color: #64748b;">';
+                html += data.docs.toLocaleString() + ' documents';
+                html += '<br>' + data.tps.size + ' TPs';
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+            
+            // KC weight view
+            html += '<div id="weightKCsView" style="display: none;">';
+            html += '<div style="background: #f0fdf4; border: 1px solid #86efac; padding: 15px; border-radius: 8px; margin-bottom: 15px;">';
+            html += '<div style="color: #14532d; font-weight: 600; margin-bottom: 10px;">📊 Kilocharacter Volume Distribution</div>';
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
+            
+            sortedTypes.forEach(([type, data]) => {
+                const percentage = totalKCs > 0 ? ((data.kcs / totalKCs) * 100).toFixed(2) : '0.00';
+                const color = type.toLowerCase().includes('direct') ? '#059669' :
+                             type.toLowerCase().includes('van') ? '#3b82f6' :
+                             type.toLowerCase().includes('as2') ? '#8b5cf6' :
+                             type.toLowerCase().includes('ftp') ? '#f59e0b' :
+                             type.toLowerCase().includes('api') ? '#ec4899' :
+                             type.toLowerCase().includes('https') ? '#10b981' : '#6b7280';
+                
+                const barWidth = totalKCs > 0 ? (data.kcs / totalKCs * 100) : 0;
+                
+                html += '<div style="background: white; border: 1px solid #e5e7eb; padding: 15px; border-radius: 8px;">';
+                html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">';
+                html += '<span style="color: ' + color + '; font-weight: 600;">' + type + '</span>';
+                html += '<span style="font-size: 1.2em; font-weight: bold; color: #1e293b;">' + percentage + '%</span>';
+                html += '</div>';
+                html += '<div style="background: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden;">';
+                html += '<div style="background: ' + color + '; height: 100%; width: ' + barWidth + '%; transition: width 0.3s ease;"></div>';
+                html += '</div>';
+                html += '<div style="margin-top: 8px; font-size: 0.85em; color: #64748b;">';
+                html += data.kcs.toLocaleString() + ' KC';
+                html += '<br>' + data.tps.size + ' TPs';
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+            
+            html += '</div>';
+            
+            
+            return html;
+        }
         
         window.updateMissingTPs = function(isFiltered, records, allRecords) {
             const section = document.getElementById('missingTPsSection');
@@ -10428,6 +11200,192 @@ The data shows operational activity patterns across multiple dimensions...`;
             }, 100);
             </scr` + `ipt>`;
         }
+        
+        html += `</div>`;
+        return html;
+    }
+    
+    generateMapAnalysis(data) {
+        // Check if Map data is available
+        if (!window.mapData || !window.mapData.analysis) {
+            return null; // Return null if no Map data, so the tab won't be shown
+        }
+        
+        const mapAnalysis = window.mapData.analysis;
+        const summary = mapAnalysis.summary;
+        
+        let html = `<div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+            <h3 style="margin-top: 0; color: #1a365d; margin-bottom: 30px;">🗺️ Map Analysis
+                <span class="info-icon">i
+                    <div class="tooltip">
+                        Map Analysis shows the usage patterns of integration maps across trading partners.
+                        It helps identify reusable maps, consolidation opportunities, and partner-specific customizations.
+                        Use this to optimize map maintenance and streamline partner onboarding.
+                    </div>
+                </span>
+            </h3>`;
+        
+        // Summary section
+        html += `
+        <div class="info-box" style="margin-bottom: 30px;">
+            <h4 style="margin-top: 0; color: #2d3748;">📊 Map Usage Summary</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); padding: 20px; border-radius: 10px; border: 1px solid #0ea5e9;">
+                    <div style="font-size: 0.9em; color: #0c4a6e; margin-bottom: 5px;">Total Maps</div>
+                    <div style="font-size: 2em; font-weight: bold; color: #0369a1;">${summary.totalMaps}</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); padding: 20px; border-radius: 10px; border: 1px solid #c084fc;">
+                    <div style="font-size: 0.9em; color: #581c87; margin-bottom: 5px;">Trading Partners</div>
+                    <div style="font-size: 2em; font-weight: bold; color: #7c3aed;">${summary.totalTPs}</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 10px; border: 1px solid #fbbf24;">
+                    <div style="font-size: 0.9em; color: #78350f; margin-bottom: 5px;">Document Types</div>
+                    <div style="font-size: 2em; font-weight: bold; color: #d97706;">${summary.totalDocTypes}</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); padding: 20px; border-radius: 10px; border: 1px solid #86efac;">
+                    <div style="font-size: 0.9em; color: #14532d; margin-bottom: 5px;">Total Transactions</div>
+                    <div style="font-size: 2em; font-weight: bold; color: #16a34a;">${summary.totalTransactions.toLocaleString()}</div>
+                </div>
+            </div>
+        </div>`;
+        
+        // Maps by Document Type
+        html += `
+        <div style="margin-bottom: 40px;">
+            <h4 style="color: #2d3748; margin-bottom: 20px;">📄 Maps by Document Type</h4>
+            <div style="display: grid; gap: 15px;">`;
+        
+        // Sort document types by number of maps
+        const sortedDocTypes = Object.entries(mapAnalysis.docTypes)
+            .sort((a, b) => b[1].maps.length - a[1].maps.length);
+        
+        sortedDocTypes.slice(0, 10).forEach(([docType, data]) => {
+            const percentage = ((data.transactions / summary.totalTransactions) * 100).toFixed(1);
+            
+            html += `
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div style="font-weight: 600; color: #1e293b; font-size: 1.1em;">${docType}</div>
+                    <div style="display: flex; gap: 15px;">
+                        <span style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">
+                            ${data.maps.length} maps
+                        </span>
+                        <span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">
+                            ${data.tps.length} TPs
+                        </span>
+                        <span style="background: #ecfdf5; color: #065f46; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">
+                            ${percentage}% volume
+                        </span>
+                    </div>
+                </div>
+                <div style="font-size: 0.9em; color: #64748b;">
+                    Maps: ${data.maps.slice(0, 3).join(', ')}${data.maps.length > 3 ? '...' : ''}
+                </div>
+            </div>`;
+        });
+        
+        html += `</div></div>`;
+        
+        // Top Maps by Usage
+        html += `
+        <div style="margin-bottom: 40px;">
+            <h4 style="color: #2d3748; margin-bottom: 20px;">🔝 Top Maps by Trading Partner Usage</h4>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f1f5f9;">
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Map Name</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Document Type</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">TP Count</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Transactions</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Direction</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+        
+        // Sort maps by number of TPs using them
+        const sortedMaps = Object.entries(mapAnalysis.maps)
+            .sort((a, b) => b[1].tps.length - a[1].tps.length)
+            .slice(0, 20);
+        
+        sortedMaps.forEach(([mapName, mapData], index) => {
+            const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+            const directionBadge = mapData.directions.inbound > mapData.directions.outbound 
+                ? '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↓ Inbound</span>'
+                : mapData.directions.outbound > mapData.directions.inbound
+                ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↑ Outbound</span>'
+                : '<span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↕ Both</span>';
+            
+            html += `
+            <tr style="background: ${rowBg}; border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 10px; font-weight: 500;">${mapName}</td>
+                <td style="padding: 10px;">${mapData.docType}</td>
+                <td style="padding: 10px; text-align: center;">
+                    <span style="background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-weight: 600;">
+                        ${mapData.tps.length}
+                    </span>
+                </td>
+                <td style="padding: 10px; text-align: center;">${mapData.transactions.toLocaleString()}</td>
+                <td style="padding: 10px; text-align: center;">${directionBadge}</td>
+            </tr>`;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+        
+        // Trading Partners by Map Usage
+        html += `
+        <div style="margin-bottom: 40px;">
+            <h4 style="color: #2d3748; margin-bottom: 20px;">🤝 Trading Partners by Map Usage</h4>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f1f5f9;">
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Trading Partner</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Maps Used</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Doc Types</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Transactions</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Primary Maps</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+        
+        // Sort TPs by number of transactions
+        const sortedTPs = Object.entries(mapAnalysis.tpUsage)
+            .sort((a, b) => b[1].transactions - a[1].transactions)
+            .slice(0, 20);
+        
+        sortedTPs.forEach(([tpId, tpData], index) => {
+            const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+            
+            html += `
+            <tr style="background: ${rowBg}; border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 10px; font-weight: 500;">${tpId}</td>
+                <td style="padding: 10px; text-align: center;">
+                    <span style="background: #f3e8ff; color: #6b21a8; padding: 4px 8px; border-radius: 4px; font-weight: 600;">
+                        ${tpData.maps.length}
+                    </span>
+                </td>
+                <td style="padding: 10px; text-align: center;">
+                    <span style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-weight: 600;">
+                        ${tpData.docTypes.length}
+                    </span>
+                </td>
+                <td style="padding: 10px; text-align: center;">${tpData.transactions.toLocaleString()}</td>
+                <td style="padding: 10px; font-size: 0.9em; color: #64748b;">
+                    ${tpData.maps.slice(0, 2).join(', ')}${tpData.maps.length > 2 ? '...' : ''}
+                </td>
+            </tr>`;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
         
         html += `</div>`;
         return html;

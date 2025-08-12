@@ -1207,6 +1207,20 @@
                     <button id="removeXref" style="margin-left: 10px; padding: 5px 10px; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove</button>
                 </div>
             </div>
+            
+            <div class="tpr-upload-section" style="margin-top: 20px; padding: 20px; background: #f0f7ff; border-radius: 8px; border: 1px solid #cce0ff;">
+                <h3 style="margin-top: 0; color: #2d3748;">Trading Partner Report (Optional)</h3>
+                <p style="color: #4a5568; margin-bottom: 15px;">Upload a Trading Partner Report file to show monthly volumes and communication paths</p>
+                <div class="upload-area" id="tprUploadArea" style="padding: 15px; background: white;">
+                    <p>Drag and drop TPR file here or click to select</p>
+                    <input type="file" id="tprFileInput" accept=".xlsx,.xls,.xlsm,.csv" style="display: none;">
+                </div>
+                <div id="tprFileInfo" style="margin-top: 10px; display: none;">
+                    <span style="color: #38a169;">✓ Trading Partner Report loaded: </span>
+                    <span id="tprFileName"></span>
+                    <button id="removeTpr" style="margin-left: 10px; padding: 5px 10px; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove</button>
+                </div>
+            </div>
         
         <div id="fileList" class="file-list"></div>
         
@@ -1402,6 +1416,64 @@ document.addEventListener('DOMContentLoaded', function() {
             const reportFrame = document.getElementById('reportFrame');
             if (reportFrame && reportFrame.srcdoc) {
                 updateAllTablesWithCrossRef();
+            }
+        });
+    }
+    
+    // Handle Trading Partner Report file upload
+    const tprUploadArea = document.getElementById('tprUploadArea');
+    const tprFileInput = document.getElementById('tprFileInput');
+    const tprFileInfo = document.getElementById('tprFileInfo');
+    const tprFileName = document.getElementById('tprFileName');
+    const removeTprBtn = document.getElementById('removeTpr');
+    
+    if (tprUploadArea && tprFileInput) {
+        // Enable click-to-upload functionality for TPR
+        tprUploadArea.addEventListener('click', () => {
+            tprFileInput.click();
+        });
+        
+        // Handle drag over event - show visual feedback
+        tprUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            tprUploadArea.classList.add('dragover');
+        });
+        
+        // Handle drag leave event - remove visual feedback
+        tprUploadArea.addEventListener('dragleave', () => {
+            tprUploadArea.classList.remove('dragover');
+        });
+        
+        // Handle file drop event
+        tprUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            tprUploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleTprFile(e.dataTransfer.files[0]);
+            }
+        });
+        
+        // Handle file selection via file picker dialog
+        tprFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleTprFile(e.target.files[0]);
+            }
+        });
+        
+        // Handle remove button
+        removeTprBtn.addEventListener('click', () => {
+            window.tprData = null;
+            tprFileInfo.style.display = 'none';
+            tprFileName.textContent = '';
+            tprFileInput.value = '';
+            // Refresh report if already generated
+            const reportFrame = document.getElementById('reportFrame');
+            if (reportFrame && reportFrame.srcdoc) {
+                // Re-generate report without TPR data
+                const currentReport = window.lastAnalysisData;
+                if (currentReport && window.analyzer) {
+                    regenerateReportWithTPR(currentReport);
+                }
             }
         });
     }
@@ -1672,6 +1744,259 @@ async function handleXrefFile(file) {
         document.getElementById('xrefFileInfo').style.display = 'none';
         document.getElementById('xrefFileName').textContent = '';
         window.idCrossReference = null;
+    }
+}
+
+/**
+ * Handle Trading Partner Report file upload
+ * Parses TPR file and stores data for inclusion in analysis report
+ * @param {File} file - The TPR file to process
+ */
+async function handleTprFile(file) {
+    try {
+        const tprFileInfo = document.getElementById('tprFileInfo');
+        const tprFileName = document.getElementById('tprFileName');
+        
+        // Show loading state
+        tprFileName.textContent = 'Loading...';
+        tprFileInfo.style.display = 'block';
+        
+        // Read the file
+        const reader = new FileReader();
+        const fileData = await new Promise((resolve, reject) => {
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = reject;
+            
+            if (file.name.toLowerCase().endsWith('.csv')) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
+        });
+        
+        // Parse the file
+        let data;
+        if (file.name.toLowerCase().endsWith('.csv')) {
+            // Parse CSV
+            const parsed = Papa.parse(fileData, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: true
+            });
+            data = parsed.data;
+        } else {
+            // Parse Excel - look for the first sheet or specific TPR sheet
+            const workbook = XLSX.read(fileData, { type: 'array' });
+            let tprSheet = null;
+            
+            // Try to find a sheet with TPR-related name
+            const tprSheetName = workbook.SheetNames.find(name => 
+                /trading.*partner|tpr|partner.*report/i.test(name)
+            ) || workbook.SheetNames[0];
+            
+            tprSheet = workbook.Sheets[tprSheetName];
+            data = XLSX.utils.sheet_to_json(tprSheet, { defval: '' });
+        }
+        
+        // Validate the data
+        if (!data || data.length === 0) {
+            throw new Error('No data found in Trading Partner Report file');
+        }
+        
+        // Find the Partner Mailbox Type column and date columns
+        const firstRow = data[0];
+        const columns = Object.keys(firstRow);
+        console.log('TPR columns found:', columns);
+        
+        // Find Partner Mailbox Type column (specifically "Partner Mailbox Type", not "Your Mailbox Type")
+        const mailboxTypeColumn = columns.find(col => 
+            /partner.*mailbox.*type|communication.*path/i.test(col) && 
+            !/your.*mailbox.*type/i.test(col)
+        );
+        
+        // Find date columns (typically in YYYY-MM format)
+        const dateColumns = columns.filter(col => {
+            // Check if column name matches date patterns
+            return /^\d{4}-\d{2}$/.test(col) || // YYYY-MM format
+                   /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(col) || // Month names
+                   /\d{4}.*\d{1,2}|\d{1,2}.*\d{4}/.test(col); // Various date formats
+        });
+        
+        // Find partner ID/name columns
+        const partnerColumns = columns.filter(col => 
+            /partner|trading.*partner|tp.*id|tp.*name|sender|receiver/i.test(col)
+        );
+        
+        console.log('Found mailbox type column:', mailboxTypeColumn);
+        console.log('Found date columns:', dateColumns);
+        console.log('Found partner columns:', partnerColumns);
+        
+        // Deduplicate records based on Partner EDI Address or Display Name
+        const deduplicatedData = [];
+        const partnerMap = new Map();
+        
+        // Find key columns for deduplication
+        const ediAddressCol = columns.find(col => /partner.*edi.*address/i.test(col));
+        const displayNameCol = columns.find(col => /display.*name/i.test(col));
+        const companyNameCol = columns.find(col => /^company.*name$/i.test(col));
+        const tprTypeCol = columns.find(col => /tpr.*type/i.test(col));
+        const tprStatusCol = columns.find(col => /tpr.*status/i.test(col));
+        const creationDateCol = columns.find(col => /creation.*date/i.test(col));
+        
+        data.forEach(record => {
+            // Create unique key - prefer EDI Address, then Display Name, then Company Name
+            let uniqueKey = '';
+            if (ediAddressCol && record[ediAddressCol]) {
+                uniqueKey = record[ediAddressCol].trim();
+            } else if (displayNameCol && record[displayNameCol]) {
+                uniqueKey = record[displayNameCol].trim();
+            } else if (companyNameCol && record[companyNameCol]) {
+                uniqueKey = record[companyNameCol].trim();
+            }
+            
+            if (!uniqueKey) return; // Skip records without identifiable key
+            
+            if (partnerMap.has(uniqueKey)) {
+                // Merge with existing record
+                const existing = partnerMap.get(uniqueKey);
+                
+                // Combine TPR Types if different
+                if (tprTypeCol && record[tprTypeCol]) {
+                    const existingType = existing[tprTypeCol] || '';
+                    const newType = record[tprTypeCol];
+                    if (existingType && !existingType.includes(newType)) {
+                        existing[tprTypeCol] = existingType + ' / ' + newType;
+                    } else if (!existingType) {
+                        existing[tprTypeCol] = newType;
+                    }
+                }
+                
+                // Keep the most recent status (or active status if available)
+                if (tprStatusCol && record[tprStatusCol]) {
+                    const newStatus = record[tprStatusCol];
+                    const existingStatus = existing[tprStatusCol] || '';
+                    // Prefer 'Active' or 'Production' status
+                    if (newStatus.toLowerCase().includes('active') || 
+                        newStatus.toLowerCase().includes('production')) {
+                        existing[tprStatusCol] = newStatus;
+                    } else if (!existingStatus) {
+                        existing[tprStatusCol] = newStatus;
+                    }
+                }
+                
+                // Keep the most recent creation date
+                if (creationDateCol && record[creationDateCol]) {
+                    const existingDate = existing[creationDateCol];
+                    const newDate = record[creationDateCol];
+                    if (!existingDate || new Date(newDate) > new Date(existingDate)) {
+                        existing[creationDateCol] = newDate;
+                    }
+                }
+                
+                // Merge monthly volume data (sum if numeric columns exist)
+                dateColumns.forEach(col => {
+                    const existingVal = parseFloat(existing[col]) || 0;
+                    const newVal = parseFloat(record[col]) || 0;
+                    existing[col] = existingVal + newVal;
+                });
+                
+                // Track that this is a merged record
+                existing._mergedCount = (existing._mergedCount || 1) + 1;
+                
+            } else {
+                // First occurrence of this partner
+                const newRecord = { ...record, _mergedCount: 1 };
+                partnerMap.set(uniqueKey, newRecord);
+            }
+        });
+        
+        // Convert map back to array
+        partnerMap.forEach(record => {
+            deduplicatedData.push(record);
+        });
+        
+        console.log(`Deduplicated ${data.length} records to ${deduplicatedData.length} unique partners`);
+        
+        // Store the deduplicated TPR data globally
+        window.tprData = {
+            raw: deduplicatedData,  // Use deduplicated data instead of raw
+            columns: columns,
+            mailboxTypeColumn: mailboxTypeColumn,
+            dateColumns: dateColumns,
+            partnerColumns: partnerColumns,
+            fileName: file.name
+        };
+        
+        // Update UI
+        const recordCount = data.length;
+        const dateCount = dateColumns.length;
+        tprFileName.textContent = `${file.name} (${recordCount} partners, ${dateCount} months)`;
+        
+        // If report is already generated, regenerate with TPR data
+        const reportFrame = document.getElementById('reportFrame');
+        if (reportFrame && reportFrame.srcdoc && window.lastAnalysisData && window.analyzer) {
+            regenerateReportWithTPR(window.lastAnalysisData);
+        }
+        
+    } catch (error) {
+        console.error('Error processing Trading Partner Report file:', error);
+        alert('Error loading Trading Partner Report: ' + error.message);
+        
+        // Reset UI
+        document.getElementById('tprFileInfo').style.display = 'none';
+        document.getElementById('tprFileName').textContent = '';
+        window.tprData = null;
+    }
+}
+
+/**
+ * Regenerate report with TPR data
+ * @param {Object} analysisData - The stored analysis data
+ */
+async function regenerateReportWithTPR(analysisData) {
+    if (!window.analyzer) {
+        console.error('Analyzer not initialized');
+        return;
+    }
+    
+    try {
+        // Get existing insights or generate new ones
+        let insights = '';
+        if (analysisData._insights) {
+            insights = analysisData._insights;
+        } else {
+            // Generate new insights if needed
+            insights = await window.analyzer.generateClaudeAnalysis(analysisData);
+        }
+        
+        // Generate HTML report with current TPR data
+        const reportHtml = window.analyzer.generateHtmlReport(analysisData, insights);
+        
+        // Display report in iframe
+        const reportFrame = document.getElementById('reportFrame');
+        reportFrame.srcdoc = reportHtml;
+        
+        // Use the original setup - copy the entire export functions setup from analyzeFiles
+        reportFrame.onload = function() {
+            const iframeWindow = reportFrame.contentWindow;
+            
+            // Pass data to iframe
+            iframeWindow.analyzerData = analysisData;
+            iframeWindow.docData = window.analyzer.docData;
+            
+            // Pass TPR data if available
+            if (window.tprData) {
+                iframeWindow.tprData = window.tprData;
+                iframeWindow.tprOriginalRecords = window.tprData.raw;
+                iframeWindow.activeTPs = window.analyzer.getActiveTPsFromData(analysisData);
+            }
+            
+            // This is a simplified version - the actual export functions will be set up
+            // when the iframe content loads with the embedded scripts
+        };
+    } catch (error) {
+        console.error('Error regenerating report:', error);
+        alert('Error updating report with TPR data: ' + error.message);
     }
 }
 
@@ -2355,6 +2680,7 @@ The data shows operational activity patterns across multiple dimensions...`;
         const tpAnalysis = this.generateTpAnalysis(data);
         const docAnalysis = this.generateDocumentAnalysis(data);
         const hubAnalysis = this.generateHubAnalysis(data);
+        const tprAnalysis = this.generateTprAnalysis(data);
         const formattedInsights = this.formatAIInsights(insights);
         
         const insightsContent = `<div class="insights-section">
@@ -3929,6 +4255,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             <button class="tab" onclick="showTab('hubanalysis')">🌐 Hub Analysis</button>
             <button class="tab" onclick="showTab('tpanalysis')">🤝 TP Analysis</button>
             <button class="tab" onclick="showTab('docanalysis')">📄 Document Analysis</button>
+            ${tprAnalysis ? '<button class="tab" onclick="showTab(\'tpranalysis\')">📡 TP Communications</button>' : ''}
         </div>
         
         
@@ -3957,6 +4284,13 @@ The data shows operational activity patterns across multiple dimensions...`;
         <div id="docanalysis" class="tab-content">
             ${docAnalysis}
         </div>
+        
+        <!-- Trading Partner Communications Tab -->
+        ${tprAnalysis ? `
+        <div id="tpranalysis" class="tab-content">
+            ${tprAnalysis}
+        </div>
+        ` : ''}
         
         <div class="footer">
             <p><strong>${this.customerName}</strong> | Operational Excellence Through Data</p>
@@ -9068,6 +9402,904 @@ The data shows operational activity patterns across multiple dimensions...`;
         return colors[index % colors.length];
     }
     
+    getActiveTPsFromData(data) {
+        const activeTPs = new Set();
+        
+        // Debug logging
+        console.log('getActiveTPsFromData - Input data:', data);
+        
+        // First try the same method as extractTPData uses
+        if (data && data.tp_data) {
+            console.log('Found tp_data in data structure');
+            for (const [period, periodData] of Object.entries(data.tp_data)) {
+                for (const [sheetName, sheetRows] of Object.entries(periodData)) {
+                    if (sheetName === 'TP_Summary' && Array.isArray(sheetRows)) {
+                        console.log('Processing ' + sheetRows.length + ' rows from TP_Summary in period ' + period);
+                        sheetRows.forEach(row => {
+                            // Extract TP ID - handle various column names (same as extractTPData)
+                            let tpId = null;
+                            for (const [key, value] of Object.entries(row)) {
+                                const keyStripped = key.trim();
+                                if (['TP ID', 'TP-ID', 'TP_ID', 'Trade_Partner'].includes(keyStripped)) {
+                                    tpId = String(value || '').trim();
+                                    break;
+                                }
+                            }
+                            
+                            if (tpId) {
+                                // Store the TP ID and various normalized forms for matching
+                                const baseId = tpId.replace(/^:/, '').trim();  // Remove leading colon if present
+                                activeTPs.add(tpId);
+                                activeTPs.add(baseId);
+                                // Also add without prefixes for matching
+                                activeTPs.add(baseId.replace(/^14:/, '').trim());
+                                activeTPs.add(baseId.replace(/^12:/, '').trim());
+                                activeTPs.add(baseId.split('/')[0].trim());
+                                // Add case variations for case-insensitive matching
+                                activeTPs.add(baseId.toUpperCase());
+                                activeTPs.add(baseId.toLowerCase());
+                                // Add with colon prefix variations
+                                activeTPs.add(':' + baseId);
+                                activeTPs.add(':' + baseId.toUpperCase());
+                                activeTPs.add(':' + baseId.toLowerCase());
+                            }
+                        });
+                    }
+                    
+                    // Also check TP_Doc_Summary
+                    if (sheetName === 'TP_Doc_Summary' && Array.isArray(sheetRows)) {
+                        console.log('Processing ' + sheetRows.length + ' rows from TP_Doc_Summary in period ' + period);
+                        sheetRows.forEach(row => {
+                            // Extract TP ID from TP_Doc_Summary
+                            for (const [key, value] of Object.entries(row)) {
+                                const keyStripped = key.trim();
+                                if (['TP ID', 'TP-ID', 'TP_ID', 'Trade_Partner'].includes(keyStripped)) {
+                                    const tpId = String(value || '').trim();
+                                    if (tpId) {
+                                        // Store the TP ID and various normalized forms for matching
+                                        activeTPs.add(tpId);
+                                        activeTPs.add(tpId.replace(/^14:/, '').trim());
+                                        activeTPs.add(tpId.replace(/^12:/, '').trim());
+                                        activeTPs.add(tpId.split('/')[0].trim());
+                                        activeTPs.add(tpId.toUpperCase());
+                                    }
+                                    break;
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+            
+            console.log('Found ' + activeTPs.size + ' unique TP IDs from tp_data');
+            console.log('Sample TP IDs extracted (first 10):', Array.from(activeTPs).slice(0, 10));
+            if (activeTPs.size > 0) {
+                return activeTPs;
+            }
+        }
+        
+        // Fallback: Check if we have TP data in other structures
+        if (!data || !data.tp_data) {
+            console.log('getActiveTPsFromData - No tp_data found in data, checking alternatives');
+            
+            // Try to find TPs in the main analyzer data structure
+            if (window.analyzer && window.analyzer.allData) {
+                console.log('Checking analyzer.allData for TPs...');
+                Object.entries(window.analyzer.allData).forEach(([period, sheets]) => {
+                    Object.entries(sheets).forEach(([sheetName, sheetData]) => {
+                        if (sheetName === 'TP_Summary' || sheetName === 'TP_Doc_Summary') {
+                            console.log('Found ' + sheetName + ' in period ' + period);
+                            if (Array.isArray(sheetData) && sheetData.length > 0) {
+                                sheetData.forEach(record => {
+                                    // Check various possible TP ID column names (NOT names, only IDs)
+                                    ['Trade_Partner', 'TP_ID', 'TP ID', 'TP-ID'].forEach(colName => {
+                                        if (record[colName]) {
+                                            const tpValue = String(record[colName]).trim();
+                                            if (tpValue) {
+                                                const baseValue = tpValue.replace(/^:/, '').trim();  // Remove leading colon if present
+                                                activeTPs.add(tpValue);
+                                                activeTPs.add(baseValue);
+                                                // Also add without prefixes
+                                                activeTPs.add(baseValue.replace(/^14:/, '').trim());
+                                                activeTPs.add(baseValue.replace(/^12:/, '').trim());
+                                                activeTPs.add(baseValue.split('/')[0].trim());
+                                                // Add case variations
+                                                activeTPs.add(baseValue.toUpperCase());
+                                                activeTPs.add(baseValue.toLowerCase());
+                                                // Add with colon prefix variations
+                                                activeTPs.add(':' + baseValue);
+                                                activeTPs.add(':' + baseValue.toUpperCase());
+                                                activeTPs.add(':' + baseValue.toLowerCase());
+                                            }
+                                        }
+                                    });
+                                });
+                            }
+                        }
+                    });
+                });
+            }
+            
+            // Also try to find TPs in summary data
+            if (data && data.summary) {
+                console.log('Checking summary data for TPs...');
+                Object.values(data.summary).forEach(periodData => {
+                    // Check all sheets for TP-related columns
+                    Object.entries(periodData).forEach(([sheetName, sheetData]) => {
+                        if (sheetName === 'TP_Summary' || sheetName === 'TP_Doc_Summary') {
+                            console.log('Found ' + sheetName + ' in summary');
+                            if (Array.isArray(sheetData) && sheetData.length > 0) {
+                                sheetData.forEach(record => {
+                                    // Check various possible TP ID column names (NOT names, only IDs)
+                                    ['Trade_Partner', 'TP_ID', 'TP ID', 'TP-ID'].forEach(colName => {
+                                        if (record[colName]) {
+                                            const tpValue = String(record[colName]).trim();
+                                            if (tpValue) {
+                                                const baseValue = tpValue.replace(/^:/, '').trim();  // Remove leading colon if present
+                                                activeTPs.add(tpValue);
+                                                activeTPs.add(baseValue);
+                                                // Also add without prefixes
+                                                activeTPs.add(baseValue.replace(/^14:/, '').trim());
+                                                activeTPs.add(baseValue.replace(/^12:/, '').trim());
+                                                activeTPs.add(baseValue.split('/')[0].trim());
+                                                // Add case variations
+                                                activeTPs.add(baseValue.toUpperCase());
+                                                activeTPs.add(baseValue.toLowerCase());
+                                                // Add with colon prefix variations
+                                                activeTPs.add(':' + baseValue);
+                                                activeTPs.add(':' + baseValue.toUpperCase());
+                                                activeTPs.add(':' + baseValue.toLowerCase());
+                                            }
+                                        }
+                                    });
+                                });
+                            }
+                        }
+                    });
+                });
+            }
+            
+            console.log('Found ' + activeTPs.size + ' TPs from summary data');
+            return activeTPs.size > 0 ? activeTPs : null;
+        }
+        
+        // Extract all unique TPs from all periods
+        Object.values(data.tp_data).forEach(periodData => {
+            if (periodData['TP_Summary']) {
+                console.log('Found TP_Summary sheet');
+                periodData['TP_Summary'].forEach(tp => {
+                    // Add various forms of the TP identifier
+                    if (tp.Trade_Partner) {
+                        activeTPs.add(tp.Trade_Partner.trim());
+                        // Also add without EAN/UPC prefixes
+                        activeTPs.add(tp.Trade_Partner.replace(/^14:/, '').trim());
+                        activeTPs.add(tp.Trade_Partner.replace(/^12:/, '').trim());
+                        // Add base ID without qualifiers
+                        activeTPs.add(tp.Trade_Partner.split('/')[0].trim());
+                    }
+                    if (tp.TP_ID) {
+                        activeTPs.add(tp.TP_ID.trim());
+                        activeTPs.add(tp.TP_ID.replace(/^14:/, '').trim());
+                        activeTPs.add(tp.TP_ID.replace(/^12:/, '').trim());
+                    }
+                    if (tp.Partner_Name) {
+                        activeTPs.add(tp.Partner_Name.trim());
+                    }
+                });
+            }
+            
+            // Also check TP_Doc_Summary for additional TPs
+            if (periodData['TP_Doc_Summary']) {
+                console.log('Found TP_Doc_Summary sheet');
+                periodData['TP_Doc_Summary'].forEach(tp => {
+                    if (tp.Trade_Partner) {
+                        activeTPs.add(tp.Trade_Partner.trim());
+                        activeTPs.add(tp.Trade_Partner.replace(/^14:/, '').trim());
+                        activeTPs.add(tp.Trade_Partner.replace(/^12:/, '').trim());
+                        activeTPs.add(tp.Trade_Partner.split('/')[0].trim());
+                    }
+                });
+            }
+        });
+        
+        console.log(`getActiveTPsFromData - Found ${activeTPs.size} unique TPs`);
+        return activeTPs.size > 0 ? activeTPs : null;
+    }
+    
+    generateTprAnalysis(data) {
+        // Check if TPR data is available
+        if (!window.tprData || !window.tprData.raw) {
+            return null; // Return null if no TPR data, so the tab won't be shown
+        }
+        
+        const tprData = window.tprData;
+        let allRecords = tprData.raw;
+        let records = allRecords;
+        const mailboxColumn = tprData.mailboxTypeColumn;
+        const dateColumns = tprData.dateColumns;
+        const partnerColumns = tprData.partnerColumns;
+        
+        // Get active TPs from the loaded document/KC data
+        const activeTPs = this.getActiveTPsFromData(data);
+        const hasDocumentData = data && (data.tp_data || data.summary); // Check if any billing data is loaded
+        const hasActiveTPs = activeTPs && activeTPs.size > 0;
+        
+        // Log for debugging
+        console.log('TPR Analysis - Document data loaded:', hasDocumentData);
+        console.log('TPR Analysis - Active TPs found:', hasActiveTPs ? activeTPs.size : 0);
+        
+        let html = `<div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+            <h3 style="margin-top: 0; color: #1a365d; margin-bottom: 30px;">📡 Trading Partner Communications
+                <span class="info-icon">i
+                    <div class="tooltip">
+                        Trading Partner Communications analysis shows monthly volumes from the Trading Partner Report.
+                        It highlights communication paths using the Partner Mailbox Type field.
+                        This helps identify integration patterns and communication methods across partners.
+                        Use this to optimize partner onboarding and communication strategies.
+                    </div>
+                </span>
+            </h3>`;
+        
+        // Add filter toggle if document data is available (even if no TPs found)
+        if (hasDocumentData) {
+            html += `
+            <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); 
+                       border: 1px solid #0284c7; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="filterActiveTPsToggle" ${hasActiveTPs ? 'checked' : ''} 
+                           onchange="window.toggleActiveTPFilter()" 
+                           style="width: 18px; height: 18px; cursor: pointer;"
+                           ${hasActiveTPs ? '' : 'disabled'}>
+                    <span style="color: ${hasActiveTPs ? '#0c4a6e' : '#6b7280'}; font-weight: 500;">
+                        ${hasActiveTPs 
+                            ? 'Show only Trading Partners with activity in the loaded billing data' 
+                            : 'No Trading Partner data found in billing files (showing all TPR partners)'}
+                    </span>
+                </label>
+                <div id="filterStatus" style="margin-top: 10px; color: #075985; font-size: 0.9em;">
+                    <!-- Status will be updated by JavaScript -->
+                </div>
+            </div>`;
+        }
+        
+        // Summary section
+        const totalTPRPartners = tprData.raw.length;
+        const totalMonths = dateColumns.length;
+        
+        // This will be dynamically updated
+        html += `
+        <div class="info-box" style="margin-bottom: 30px;" id="tprSummaryBox">
+            <!-- Summary will be dynamically updated -->
+        </div>`;
+        
+        // Communication Type Distribution with Volume Percentages
+        html += `
+        <div style="margin-bottom: 40px;" id="tprDistributionSection">
+            <!-- Distribution will be dynamically updated -->
+        </div>`;
+        
+        // Table container - will be dynamically populated
+        html += `<div id="tprTableContainer" style="margin-bottom: 40px;">
+            <!-- Table will be dynamically updated -->
+        </div>`;
+        
+        // Add the update function script
+        html += `
+        <scr` + `ipt>
+        // Embed TPR data for persistence
+        window.tprData = ${JSON.stringify(tprData)};
+        window.tprOriginalRecords = ${JSON.stringify(allRecords)};
+        window.activeTPs = ${activeTPs ? `new Set(${JSON.stringify(Array.from(activeTPs))})` : 'null'};
+        
+        // Function to update TPR display based on filter
+        window.toggleActiveTPFilter = function() {
+            const checkbox = document.getElementById('filterActiveTPsToggle');
+            const isFiltered = checkbox ? checkbox.checked : false;
+            updateTPRDisplay(isFiltered);
+        };
+        
+        window.updateTPRDisplay = function(isFiltered) {
+            // Check if TPR data is available
+            if (!window.tprData) {
+                console.log('TPR data not yet available, waiting...');
+                return;
+            }
+            
+            const tprData = window.tprData;
+            const activeTPs = window.activeTPs;
+            const allRecords = window.tprOriginalRecords || tprData.raw;
+            
+            let records = allRecords;
+            
+            // Apply filter if checked and document data is available
+            if (isFiltered && activeTPs && activeTPs.size > 0) {
+                const ediAddressColumn = tprData.columns.find(col => /partner.*edi.*address/i.test(col));
+                
+                console.log('Filtering TPR records by TP ID only. Active TP IDs count:', activeTPs.size);
+                console.log('Active TP IDs (first 20):', Array.from(activeTPs).slice(0, 20));
+                console.log('EDI Address column name:', ediAddressColumn);
+                console.log('Sample TPR EDI Addresses (first 20):', allRecords.slice(0, 20).map(r => r[ediAddressColumn]));
+                
+                // Create a map to track matches for debugging
+                const matchMap = new Map();
+                let matchCount = 0;
+                let noMatchCount = 0;
+                
+                records = allRecords.filter(record => {
+                    const ediAddress = ediAddressColumn ? (record[ediAddressColumn] || '').trim() : '';
+                    
+                    if (!ediAddress) return false;
+                    
+                    // Check multiple variations of the EDI Address (TP ID) for EXACT matching
+                    // Check if any of these exact variations exist in activeTPs
+                    const baseAddress = ediAddress.replace(/^:/, '').trim();  // Remove leading colon if present
+                    const variations = [
+                        ediAddress,
+                        baseAddress,                            // Without leading colon
+                        baseAddress.replace(/^14:/, '').trim(), // Remove EAN prefix
+                        baseAddress.replace(/^12:/, '').trim(), // Remove UPC prefix  
+                        baseAddress.split('/')[0].trim(),       // Get base ID without qualifiers
+                        baseAddress.toUpperCase(),              // Case-insensitive match
+                        baseAddress.toLowerCase(),               // Lower case version
+                        ':' + baseAddress,                       // With leading colon
+                        ':' + baseAddress.toUpperCase(),        // With colon, uppercase
+                        ':' + baseAddress.toLowerCase()         // With colon, lowercase
+                    ];
+                    
+                    const isMatch = variations.some(v => activeTPs.has(v));
+                    
+                    if (isMatch) {
+                        matchCount++;
+                        if (matchCount <= 5) {
+                            console.log('Match #' + matchCount + ': "' + ediAddress + '" matched');
+                        }
+                    } else {
+                        noMatchCount++;
+                        if (noMatchCount <= 5) {
+                            console.log('No match #' + noMatchCount + ': "' + ediAddress + '" - variations checked:', variations);
+                        }
+                    }
+                    
+                    return isMatch;
+                });
+                
+                console.log('Filter results: ' + matchCount + ' matches, ' + noMatchCount + ' non-matches');
+            }
+            
+            // Update filter status
+            const filterStatus = document.getElementById('filterStatus');
+            if (filterStatus) {
+                if (isFiltered && activeTPs && activeTPs.size > 0) {
+                    filterStatus.innerHTML = '✓ Filter active: Showing <strong>' + records.length + '</strong> trading partners with billing activity (from ' + allRecords.length + ' total in TPR)';
+                } else {
+                    filterStatus.innerHTML = '○ Filter inactive: Showing all <strong>' + allRecords.length + '</strong> trading partners from TPR';
+                }
+            }
+            
+            // Update summary
+            updateTPRSummary(records, allRecords, isFiltered);
+            
+            // Update distribution
+            updateTPRDistribution(records);
+            
+            // Update table
+            updateTPRTable(records);
+        };
+        
+        window.updateTPRSummary = function(records, allRecords, isFiltered) {
+            const summaryBox = document.getElementById('tprSummaryBox');
+            if (!summaryBox) return;
+            
+            const tprData = window.tprData;
+            const mailboxColumn = tprData.mailboxTypeColumn;
+            const dateColumns = tprData.dateColumns;
+            const mailboxTypes = mailboxColumn ? [...new Set(records.map(r => r[mailboxColumn]).filter(Boolean))] : [];
+            const totalMonths = dateColumns.length;
+            const isVolumeData = dateColumns.length > 0;
+            
+            const filterStatus = isFiltered && window.activeTPs && window.activeTPs.size > 0
+                ? ' (Filtered: ' + records.length + ' active from ' + allRecords.length + ' total)'
+                : '';
+            
+            const summaryText = isVolumeData 
+                ? records.length + ' Trading Partners' + filterStatus + ' | ' + totalMonths + ' Months of Data | ' + mailboxTypes.length + ' Communication Types'
+                : records.length + ' Trading Partners' + filterStatus + ' | ' + mailboxTypes.length + ' Communication Types | Configuration Data';
+            
+            summaryBox.innerHTML = '<strong>TPR Data Summary:</strong> ' + summaryText;
+        };
+        
+        window.updateTPRDistribution = function(records) {
+            const container = document.getElementById('tprDistributionSection');
+            if (!container) return;
+            
+            const tprData = window.tprData;
+            const mailboxColumn = tprData.mailboxTypeColumn;
+            const dateColumns = tprData.dateColumns;
+            const totalPartners = records.length;
+            
+            if (!mailboxColumn || totalPartners === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            let html = '<h4 style="color: #2d3748;">📊 Communication Type Distribution</h4>';
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">';
+            
+            const typeCounts = {};
+            const typeVolumes = {};
+            let totalVolume = 0;
+            
+            records.forEach(r => {
+                const type = r[mailboxColumn] || 'Unknown';
+                typeCounts[type] = (typeCounts[type] || 0) + 1;
+                
+                if (dateColumns.length > 0) {
+                    let volume = 0;
+                    dateColumns.forEach(col => {
+                        volume += parseFloat(r[col]) || 0;
+                    });
+                    typeVolumes[type] = (typeVolumes[type] || 0) + volume;
+                    totalVolume += volume;
+                }
+            });
+            
+            Object.entries(typeCounts)
+                .sort((a, b) => b[1] - a[1])
+                .forEach(([type, count]) => {
+                    const percentage = ((count / totalPartners) * 100).toFixed(1);
+                    const volumePercentage = totalVolume > 0 
+                        ? ((typeVolumes[type] || 0) / totalVolume * 100).toFixed(1)
+                        : '0.0';
+                    const color = type.toLowerCase().includes('direct') ? '#059669' :
+                                 type.toLowerCase().includes('van') ? '#3b82f6' :
+                                 type.toLowerCase().includes('as2') ? '#8b5cf6' :
+                                 type.toLowerCase().includes('ftp') ? '#f59e0b' : '#6b7280';
+                    
+                    html += '<div style="background: linear-gradient(135deg, ' + color + '15 0%, ' + color + '25 100%); border: 1px solid ' + color + '40; padding: 15px; border-radius: 10px;">';
+                    html += '<div style="color: ' + color + '; font-weight: 600; font-size: 0.9em; margin-bottom: 5px;">' + type + '</div>';
+                    html += '<div style="font-size: 1.5em; font-weight: bold; color: #1e293b;">' + count + '</div>';
+                    html += '<div style="color: #64748b; font-size: 0.85em;">' + percentage + '% of partners</div>';
+                    
+                    if (totalVolume > 0) {
+                        html += '<div style="color: #475569; font-size: 0.85em; font-weight: 500; margin-top: 5px; padding-top: 5px; border-top: 1px solid ' + color + '30;">Volume: ' + volumePercentage + '%</div>';
+                    }
+                    
+                    html += '</div>';
+                });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        };
+        
+        window.updateTPRTable = function(records) {
+            const container = document.getElementById('tprTableContainer');
+            if (!container) return;
+            
+            const tprData = window.tprData;
+            const mailboxColumn = tprData.mailboxTypeColumn;
+            const dateColumns = tprData.dateColumns;
+            const partnerColumns = tprData.partnerColumns;
+            
+            // Find columns
+            const ediAddressColumn = tprData.columns.find(col => /partner.*edi.*address/i.test(col));
+            const displayNameColumn = tprData.columns.find(col => /display.*name/i.test(col));
+            const partnerFacadeColumn = tprData.columns.find(col => /partner.*edi.*facade/i.test(col));
+            
+            // Process and sort records
+            const processedRecords = records.map(record => {
+                let total = 0;
+                // Only calculate total if there are date columns with numeric data
+                if (dateColumns.length > 0) {
+                    dateColumns.forEach(col => {
+                        const value = parseFloat(record[col]) || 0;
+                        total += value;
+                    });
+                }
+                return { ...record, _total: total };
+            }).sort((a, b) => {
+                // If no totals, sort alphabetically by first partner column
+                if (a._total === 0 && b._total === 0 && partnerColumns.length > 0) {
+                    return (a[partnerColumns[0]] || '').localeCompare(b[partnerColumns[0]] || '');
+                }
+                return b._total - a._total;
+            });
+            
+            // Build the HTML for the table
+            let html = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">';
+            html += '<h4 style="color: #2d3748; margin: 0;">📈 Monthly Volumes by Trading Partner';
+            html += '<span class="info-icon">i<div class="tooltip">This table shows monthly transaction volumes for each trading partner. Communication paths are highlighted using color coding for easy identification. Use filters to search by EDI Address, EDI Facade, or Communication Path. Table shows 20 rows at a time with scrolling for additional entries.</div></span></h4>';
+            
+            // Add export buttons
+            html += '<div style="display: flex; gap: 10px;">';
+            html += '<button onclick="exportTPRTable(&quot;json&quot;)" style="background: #3182ce; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: 500;">📥 Export JSON</button>';
+            html += '<button onclick="exportTPRTable(&quot;csv&quot;)" style="background: #16a34a; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: 500;">📥 Export CSV</button>';
+            html += '</div>';
+            html += '</div>';
+            
+            // Add filters
+            html += '<div style="display: flex; gap: 15px; margin: 20px 0; flex-wrap: wrap;">';
+            html += '<div style="flex: 1; min-width: 200px;"><label style="display: block; font-size: 0.85em; color: #4a5568; margin-bottom: 5px;">Filter by TP Name:</label>';
+            html += '<input type="text" id="tprFilterName" placeholder="Enter TP Name..." style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em;" onkeyup="filterTPRTable()"></div>';
+            
+            html += '<div style="flex: 1; min-width: 200px;"><label style="display: block; font-size: 0.85em; color: #4a5568; margin-bottom: 5px;">Filter by EDI Address:</label>';
+            html += '<input type="text" id="tprFilterAddress" placeholder="Enter EDI Address..." style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em;" onkeyup="filterTPRTable()"></div>';
+            
+            html += '<div style="flex: 1; min-width: 200px;"><label style="display: block; font-size: 0.85em; color: #4a5568; margin-bottom: 5px;">Filter by Communication Path:</label>';
+            html += '<select id="tprFilterPath" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.9em;" onchange="filterTPRTable()"><option value="">All Communication Paths</option>';
+            
+            if (mailboxColumn) {
+                const uniquePaths = [...new Set(records.map(r => r[mailboxColumn]).filter(Boolean))].sort();
+                uniquePaths.forEach(path => {
+                    html += '<option value="' + path + '">' + path + '</option>';
+                });
+            }
+            
+            html += '</select></div>';
+            html += '<div style="display: flex; align-items: flex-end;"><button onclick="clearTPRFilters()" style="padding: 8px 16px; background: #e2e8f0; color: #2d3748; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">Clear Filters</button></div></div>';
+            
+            // Create table
+            const tableId = 'tpr-monthly-volumes';
+            html += '<div style="overflow-x: auto; margin-top: 20px;"><div style="max-height: 600px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">';
+            html += '<table id="' + tableId + '" class="monthly-table sortable" style="margin: 0;"><thead style="position: sticky; top: 0; background: #f7fafc; z-index: 10;"><tr>';
+            
+            // Add headers
+            html += '<th onclick="sortTable(&quot;' + tableId + '&quot;, this)" style="background: #f7fafc; border-bottom: 2px solid #cbd5e0;">TP Name</th>';
+            
+            if (ediAddressColumn) {
+                html += '<th onclick="sortTable(&quot;' + tableId + '&quot;, this)" style="background: #f7fafc; border-bottom: 2px solid #cbd5e0;">EDI Address</th>';
+            }
+            
+            if (partnerColumns.length > 0) {
+                partnerColumns.forEach(col => {
+                    if (col !== ediAddressColumn && col !== partnerFacadeColumn && col !== displayNameColumn && col !== mailboxColumn) {
+                        html += '<th onclick="sortTable(&quot;' + tableId + '&quot;, this)" style="background: #f7fafc; border-bottom: 2px solid #cbd5e0;">' + col + '</th>';
+                    }
+                });
+            }
+            
+            if (mailboxColumn) {
+                html += '<th onclick="sortTable(&quot;' + tableId + '&quot;, this)" style="min-width: 150px; background: #f7fafc; border-bottom: 2px solid #cbd5e0;">Communication Path</th>';
+            }
+            
+            if (dateColumns.length > 0) {
+                dateColumns.forEach(col => {
+                    html += '<th onclick="sortTable(&quot;' + tableId + '&quot;, this)" style="text-align: right; background: #f7fafc; border-bottom: 2px solid #cbd5e0;">' + col + '</th>';
+                });
+                html += '<th onclick="sortTable(&quot;' + tableId + '&quot;, this)" style="text-align: right; background: #f7fafc; border-bottom: 2px solid #cbd5e0;">Total</th>';
+            }
+            
+            html += '</tr></thead><tbody>';
+        
+            // Add data rows (all records, not limited)
+            processedRecords.forEach((record, index) => {
+                // Get TP Name - use Display Name as default, fall back to Partner EDI Facade if it exists
+                const displayName = displayNameColumn ? (record[displayNameColumn] || '') : '';
+                const partnerFacade = partnerFacadeColumn ? (record[partnerFacadeColumn] || '') : '';
+                const tpName = partnerFacade || displayName || '';
+                
+                // Add data attributes for filtering
+                const ediAddress = ediAddressColumn ? (record[ediAddressColumn] || '') : '';
+                const commPath = mailboxColumn ? (record[mailboxColumn] || '') : '';
+                
+                html += '<tr data-tp-name="' + tpName + '" data-edi-address="' + ediAddress + '" data-comm-path="' + commPath + '" style="' + (index >= 20 ? 'display: none;' : '') + '">';
+                
+                // Add TP Name as first column
+                html += '<td>' + tpName + '</td>';
+                
+                // Add EDI Address if column exists
+                if (ediAddressColumn) {
+                    html += '<td>' + ediAddress + '</td>';
+                }
+            
+                // Add other partner data (excluding columns we've already added)
+                if (partnerColumns.length > 0) {
+                    partnerColumns.forEach(col => {
+                        // Skip columns we're handling separately
+                        if (col !== ediAddressColumn && col !== partnerFacadeColumn && col !== displayNameColumn && col !== mailboxColumn) {
+                            html += '<td>' + (record[col] || '') + '</td>';
+                        }
+                    });
+                }
+                
+                // Add mailbox type with color coding
+                if (mailboxColumn) {
+                    const mailboxType = record[mailboxColumn] || 'Unknown';
+                    const bgColor = mailboxType.toLowerCase().includes('direct') ? '#dcfce7' :
+                                   mailboxType.toLowerCase().includes('van') ? '#dbeafe' :
+                                   mailboxType.toLowerCase().includes('as2') ? '#ede9fe' :
+                                   mailboxType.toLowerCase().includes('ftp') ? '#fef3c7' : '#f3f4f6';
+                    const textColor = mailboxType.toLowerCase().includes('direct') ? '#166534' :
+                                     mailboxType.toLowerCase().includes('van') ? '#1e40af' :
+                                     mailboxType.toLowerCase().includes('as2') ? '#6b21a8' :
+                                     mailboxType.toLowerCase().includes('ftp') ? '#92400e' : '#374151';
+                    
+                    html += '<td style="background-color: ' + bgColor + '; color: ' + textColor + '; font-weight: 500;">' + mailboxType + '</td>';
+                }
+                
+                // Add monthly values (only if there are date columns)
+                if (dateColumns.length > 0) {
+                    dateColumns.forEach(col => {
+                        const value = parseFloat(record[col]) || 0;
+                        const formatted = value > 0 ? value.toLocaleString() : '-';
+                        const cellColor = value > 10000 ? '#fef2f2' : value > 5000 ? '#fefce8' : value > 0 ? '#f0fdf4' : '';
+                        html += '<td style="text-align: right; background-color: ' + cellColor + ';">' + formatted + '</td>';
+                    });
+                    
+                    // Add total only if there are date columns
+                    html += '<td style="text-align: right; font-weight: 600;">' + record._total.toLocaleString() + '</td>';
+                }
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div></div>';
+        
+            // Add pagination controls
+            html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">';
+            html += '<div style="color: #4a5568; font-size: 0.9em;">Showing <span id="tprShowingCount">1-' + Math.min(20, processedRecords.length) + '</span> of <span id="tprTotalCount">' + processedRecords.length + '</span> partners<span id="tprFilteredCount" style="display: none;"> (filtered from ' + processedRecords.length + ' total)</span></div>';
+            html += '<div style="display: flex; gap: 10px;">';
+            html += '<button id="tprShowMore" onclick="showMoreTPRRows()" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;"' + (processedRecords.length <= 20 ? ' disabled style="opacity: 0.5; cursor: not-allowed;"' : '') + '>Show More</button>';
+            html += '<button id="tprShowAll" onclick="showAllTPRRows()" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;"' + (processedRecords.length <= 20 ? ' disabled style="opacity: 0.5; cursor: not-allowed;"' : '') + '>Show All</button>';
+            html += '</div></div>';
+        
+            // Add JavaScript for filtering and pagination
+            html += '</div>';
+            container.innerHTML = html;
+        };
+        
+        // Export functions for TPR table
+        window.exportTPRTable = function(format) {
+            const table = document.getElementById('tpr-monthly-volumes');
+            if (!table) return;
+            
+            const data = [];
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+            const headers = [];
+            
+            // Get headers
+            const headerRow = table.getElementsByTagName('thead')[0].getElementsByTagName('tr')[0];
+            const headerCells = headerRow.getElementsByTagName('th');
+            for (let i = 0; i < headerCells.length; i++) {
+                headers.push(headerCells[i].textContent.trim());
+            }
+            
+            // Get visible rows data
+            for (let i = 0; i < rows.length; i++) {
+                if (rows[i].style.display !== 'none') {
+                    const rowData = {};
+                    const cells = rows[i].getElementsByTagName('td');
+                    for (let j = 0; j < cells.length && j < headers.length; j++) {
+                        rowData[headers[j]] = cells[j].textContent.trim();
+                    }
+                    data.push(rowData);
+                }
+            }
+            
+            const date = new Date().toISOString().split('T')[0];
+            let filename = 'TPR_Monthly_Volumes_' + date;
+            let blob;
+            
+            if (format === 'json') {
+                blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                filename += '.json';
+            } else if (format === 'csv') {
+                const csv = convertTPRToCSV(data);
+                blob = new Blob([csv], { type: 'text/csv' });
+                filename += '.csv';
+            }
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        };
+        
+        function convertTPRToCSV(data) {
+            if (!data || data.length === 0) return '';
+            
+            // Get headers
+            const headers = Object.keys(data[0]);
+            const csvHeaders = headers.join(',');
+            
+            // Convert data rows
+            const csvRows = data.map(row => {
+                return headers.map(header => {
+                    const value = row[header];
+                    // Escape quotes and wrap in quotes if contains comma
+                    if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                        return '"' + value.replace(/"/g, '""') + '"';
+                    }
+                    return value;
+                }).join(',');
+            });
+            
+            return [csvHeaders, ...csvRows].join('\\n');
+        }
+        
+        // Initialize the display
+        function initTPRDisplay() {
+            // Data should already be embedded in the script
+            if (window.tprData) {
+                // Check if we have active TPs and if checkbox exists
+                const checkbox = document.getElementById('filterActiveTPsToggle');
+                const hasActiveTPs = window.activeTPs && window.activeTPs.size > 0;
+                const shouldFilter = checkbox ? checkbox.checked : hasActiveTPs;
+                updateTPRDisplay(shouldFilter);
+            } else {
+                console.log('TPR data not found in embedded script');
+            }
+        }
+        // Initialize immediately since data is embedded
+        setTimeout(initTPRDisplay, 100);
+        </scr` + `ipt>`;
+        
+        // Moved the original script here
+        html += `
+        <scr` + `ipt>
+        let tprCurrentRows = 20;
+        
+        function filterTPRTable() {
+            const nameFilter = document.getElementById('tprFilterName').value.toLowerCase();
+            const addressFilter = document.getElementById('tprFilterAddress').value.toLowerCase();
+            const pathFilter = document.getElementById('tprFilterPath').value;
+            
+            const table = document.getElementById('tpr-monthly-volumes');
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+            let visibleCount = 0;
+            let filteredCount = 0;
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const tpName = (row.getAttribute('data-tp-name') || '').toLowerCase();
+                const ediAddress = (row.getAttribute('data-edi-address') || '').toLowerCase();
+                const commPath = row.getAttribute('data-comm-path') || '';
+                
+                const matchesName = !nameFilter || tpName.includes(nameFilter);
+                const matchesAddress = !addressFilter || ediAddress.includes(addressFilter);
+                const matchesPath = !pathFilter || commPath === pathFilter;
+                
+                if (matchesName && matchesAddress && matchesPath) {
+                    filteredCount++;
+                    row.style.display = visibleCount < tprCurrentRows ? '' : 'none';
+                    if (row.style.display === '') visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+            
+            // Update counts
+            const showingCount = document.getElementById('tprShowingCount');
+            const filteredCountSpan = document.getElementById('tprFilteredCount');
+            
+            if (nameFilter || addressFilter || pathFilter) {
+                showingCount.textContent = '1-' + Math.min(visibleCount, filteredCount);
+                document.getElementById('tprTotalCount').textContent = filteredCount;
+                filteredCountSpan.style.display = '';
+            } else {
+                const totalRows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr').length;
+                showingCount.textContent = '1-' + Math.min(tprCurrentRows, totalRows);
+                document.getElementById('tprTotalCount').textContent = totalRows;
+                filteredCountSpan.style.display = 'none';
+            }
+            
+            // Update button states
+            const showMoreBtn = document.getElementById('tprShowMore');
+            const showAllBtn = document.getElementById('tprShowAll');
+            
+            if (filteredCount <= visibleCount) {
+                showMoreBtn.disabled = true;
+                showMoreBtn.style.opacity = '0.5';
+                showMoreBtn.style.cursor = 'not-allowed';
+                showAllBtn.disabled = true;
+                showAllBtn.style.opacity = '0.5';
+                showAllBtn.style.cursor = 'not-allowed';
+            } else {
+                showMoreBtn.disabled = false;
+                showMoreBtn.style.opacity = '1';
+                showMoreBtn.style.cursor = 'pointer';
+                showAllBtn.disabled = false;
+                showAllBtn.style.opacity = '1';
+                showAllBtn.style.cursor = 'pointer';
+            }
+        }
+        
+        function clearTPRFilters() {
+            document.getElementById('tprFilterName').value = '';
+            document.getElementById('tprFilterAddress').value = '';
+            document.getElementById('tprFilterPath').value = '';
+            tprCurrentRows = 20;
+            filterTPRTable();
+        }
+        
+        function showMoreTPRRows() {
+            tprCurrentRows += 20;
+            filterTPRTable();
+        }
+        
+        function showAllTPRRows() {
+            const table = document.getElementById('tpr-monthly-volumes');
+            const totalRows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr').length;
+            tprCurrentRows = totalRows;
+            filterTPRTable();
+        }
+        </scr` + `ipt>`;
+        
+        html += `</div>`;
+        
+        // Monthly Trends Chart (only show if we have actual date columns with volume data)
+        if (dateColumns.length > 1 && mailboxColumn) {
+            // Prepare chart data
+            const chartDatasets = mailboxTypes.map((type, idx) => {
+                const color = this.getChartColor(idx);
+                const data = dateColumns.map(col => {
+                    return records
+                        .filter(r => r[mailboxColumn] === type)
+                        .reduce((sum, r) => sum + (parseFloat(r[col]) || 0), 0);
+                });
+                return {
+                    label: type,
+                    data: data,
+                    borderColor: color,
+                    backgroundColor: color.replace('1)', '0.2)'),
+                    tension: 0.1
+                };
+            });
+            
+            const chartDataJson = JSON.stringify({
+                labels: dateColumns,
+                datasets: chartDatasets
+            });
+            
+            html += `
+            <div style="margin-bottom: 40px;">
+                <h4 style="color: #2d3748;">📊 Volume Trends by Communication Type</h4>
+                <canvas id="tprTrendsChart" width="800" height="400" style="max-width: 100%;"></canvas>
+            </div>
+            
+            <scr` + `ipt>
+            setTimeout(() => {
+                const ctx = document.getElementById('tprTrendsChart');
+                if (ctx) {
+                    const tprData = ${chartDataJson};
+                    
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: tprData,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: false
+                                },
+                                legend: {
+                                    position: 'top'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value.toLocaleString();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }, 100);
+            </scr` + `ipt>`;
+        }
+        
+        html += `</div>`;
+        return html;
+    }
+    
     formatAIInsights(insights) {
         // Convert markdown-style formatting to HTML
         let formatted = insights
@@ -9337,7 +10569,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                                 
                                 for (const [key, value] of Object.entries(row)) {
                                     const keyStripped = key.trim();
-                                    if (['TP ID', 'TP-ID', 'Trading Partner', 'TP_ID', 'TP'].includes(keyStripped)) {
+                                    if (['TP ID', 'TP-ID', 'TP_ID', 'Trade_Partner'].includes(keyStripped)) {
                                         tpId = String(value || '').trim();
                                     } else if (keyStripped === 'TOTAL-DOC') {
                                         totalDocs = parseFloat(value) || 0;
@@ -9500,7 +10732,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                                 
                                 for (const [key, value] of Object.entries(row)) {
                                     const keyStripped = key.trim();
-                                    if (['TP ID', 'TP-ID', 'Trading Partner', 'TP_ID', 'TP'].includes(keyStripped)) {
+                                    if (['TP ID', 'TP-ID', 'TP_ID', 'Trade_Partner'].includes(keyStripped)) {
                                         tpId = String(value || '').trim();
                                     } else if (keyStripped === 'TOTAL-DOC') {
                                         totalDocs = parseFloat(value) || 0;
@@ -10291,7 +11523,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                             let tpId = null;
                             for (const [key, value] of Object.entries(row)) {
                                 const keyStripped = key.trim();
-                                if (['TP ID', 'TP-ID', 'Trading Partner', 'TP_ID', 'TP'].includes(keyStripped)) {
+                                if (['TP ID', 'TP-ID', 'TP_ID', 'Trade_Partner'].includes(keyStripped)) {
                                     tpId = String(value || '').trim();
                                     break;
                                 }
@@ -10360,7 +11592,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                             
                             for (const [key, value] of Object.entries(row)) {
                                 const keyStripped = key.trim();
-                                if (['TP ID', 'TP-ID', 'Trading Partner', 'TP_ID', 'TP'].includes(keyStripped)) {
+                                if (['TP ID', 'TP-ID', 'TP_ID', 'Trade_Partner'].includes(keyStripped)) {
                                     tpId = String(value || '').trim();
                                 } else if (['DOCS', 'DOC', 'Document Type', 'Doc Type', 'DOC_TYPE'].includes(keyStripped)) {
                                     docType = String(value || '').trim();
@@ -12073,7 +13305,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                             
                             for (const [key, value] of Object.entries(row)) {
                                 const keyStripped = key.trim();
-                                if (['TP ID', 'TP-ID', 'Trading Partner', 'TP_ID', 'TP'].includes(keyStripped)) {
+                                if (['TP ID', 'TP-ID', 'TP_ID', 'Trade_Partner'].includes(keyStripped)) {
                                     tpId = value ? String(value).trim() : null;
                                 } else if (['DOCS', 'DOC', 'Docs', 'docs', 'Document Type', 'Doc Type', 'DOC_TYPE', 'DOC TYPE'].includes(keyStripped)) {
                                     docType = value ? String(value).trim() : null;
@@ -13856,9 +15088,15 @@ async function analyzeFiles() {
         updateProgress(70, 'Saving analysis data...', 'Save Analysis Data');
         const analysisData = analyzer.saveAnalysisData();
         
+        // Store analysis data for potential re-generation when TPR is added
+        window.lastAnalysisData = analysisData;
+        
         // Generate Claude analysis
         updateProgress(80, 'Generating insights...', 'Generate Insights');
         const insights = await analyzer.generateClaudeAnalysis(analysisData);
+        
+        // Store insights with the analysis data for later reuse
+        window.lastAnalysisData._insights = insights;
         
         // Generate HTML report
         updateProgress(90, 'Generating report...', 'Generate Report');
@@ -13877,6 +15115,13 @@ async function analyzeFiles() {
             // Pass data to iframe
             iframeWindow.analyzerData = analysisData;
             iframeWindow.docData = analyzer.docData;
+            
+            // Pass TPR data if available
+            if (window.tprData) {
+                iframeWindow.tprData = window.tprData;
+                iframeWindow.tprOriginalRecords = window.tprData.raw;
+                iframeWindow.activeTPs = analyzer.getActiveTPsFromData(analysisData);
+            }
             
             // Define export functions in iframe context
             iframeWindow.exportTableData = function(tableId, format) {

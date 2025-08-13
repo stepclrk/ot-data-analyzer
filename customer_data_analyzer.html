@@ -3095,6 +3095,10 @@ The data shows operational activity patterns across multiple dimensions...`;
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         
+        * {
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             line-height: 1.6;
@@ -3105,8 +3109,8 @@ The data shows operational activity patterns across multiple dimensions...`;
         }
         
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
+            max-width: 1200px !important;
+            margin: 0 auto !important;
             padding: 40px 20px;
         }
         
@@ -3521,11 +3525,15 @@ The data shows operational activity patterns across multiple dimensions...`;
         
         .tab-content {
             display: none;
+            max-width: 100%;
+            overflow-x: hidden;
         }
         
         .tab-content.active {
             display: block;
             animation: fadeIn 0.3s ease;
+            max-width: 100%;
+            overflow-x: hidden;
         }
         
         @keyframes fadeIn {
@@ -4624,7 +4632,7 @@ The data shows operational activity patterns across multiple dimensions...`;
     <scr${'ipt'} src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></scr${'ipt>'}
 </head>
 <body>
-    <div class="container">
+    <div class="container" style="max-width: 1200px !important; margin: 0 auto !important;">
         <div class="header">
             <div style="position: absolute; top: 15px; left: 20px; z-index: 10;">
                 <svg width="180" height="30" viewBox="0 0 180 30" style="fill: white; opacity: 0.9;">
@@ -11354,7 +11362,7 @@ The data shows operational activity patterns across multiple dimensions...`;
         let filteredMapData = mapData;
         let filterActive = false;
         
-        let html = `<div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+        let html = `<div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; box-sizing: border-box; max-width: 100%;">
             <h3 style="margin-top: 0; color: #1a365d; margin-bottom: 30px;">🗺️ Map Analysis
                 <span class="info-icon">i
                     <div class="tooltip">
@@ -11404,9 +11412,8 @@ The data shows operational activity patterns across multiple dimensions...`;
         html += `
         <div style="margin-bottom: 30px;">
             <h4 style="color: #2d3748; margin-bottom: 15px;">📄 Document Type Analysis</h4>
-            <div style="overflow-x: auto;">
-                <div style="max-height: 600px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
-                    <table id="docTypeTable" style="width: 100%; border-collapse: collapse; background: white;">
+            <div style="overflow-x: auto; max-height: 600px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; width: 100%; box-sizing: border-box;">
+                <table id="docTypeTable" style="width: 100%; border-collapse: collapse; background: white; table-layout: auto;">
                         <thead style="background: #f8f9fa; position: sticky; top: 0; z-index: 10;">
                             <tr>
                             <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057; border-bottom: 2px solid #dee2e6; cursor: pointer;"
@@ -11462,7 +11469,6 @@ The data shows operational activity patterns across multiple dimensions...`;
         html += `
                         </tbody>
                     </table>
-                </div>
             </div>
         </div>`;
         
@@ -11521,9 +11527,8 @@ The data shows operational activity patterns across multiple dimensions...`;
         
         // Map table with scroll container (20 rows visible)
         html += `
-        <div style="overflow-x: auto;">
-            <div style="max-height: 600px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
-                <table id="mapTable" style="width: 100%; border-collapse: collapse; background: white;">
+        <div style="overflow-x: auto; max-height: 600px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; width: 100%; box-sizing: border-box;">
+            <table id="mapTable" style="width: 100%; border-collapse: collapse; background: white; table-layout: auto;">
                     <thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 10;">
                         <tr style="border-bottom: 2px solid #dee2e6;">
                         <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057; cursor: pointer;" onclick="window.sortMapTable('mapName')">
@@ -11576,8 +11581,6 @@ The data shows operational activity patterns across multiple dimensions...`;
                 </table>
             </div>
         </div>`;
-        
-        html += '</div>';
         
         // Add JavaScript for filtering and sorting
         html += `

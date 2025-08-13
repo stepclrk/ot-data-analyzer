@@ -818,6 +818,24 @@
                 </div>
 
                 <div class="feature-card fade-in">
+                    <div class="feature-icon">📡</div>
+                    <h3 class="feature-title">TP Communications</h3>
+                    <p class="feature-description">
+                        Analyze Trading Partner Report data to track monthly communication 
+                        volumes and identify integration patterns.
+                    </p>
+                </div>
+
+                <div class="feature-card fade-in">
+                    <div class="feature-icon">🗺️</div>
+                    <h3 class="feature-title">Map Analysis</h3>
+                    <p class="feature-description">
+                        Review and analyze all configured maps, verify coverage by document 
+                        type, and optimize partner integrations.
+                    </p>
+                </div>
+
+                <div class="feature-card fade-in">
                     <div class="feature-icon">🔄</div>
                     <h3 class="feature-title">Format Conversion</h3>
                     <p class="feature-description">
@@ -851,12 +869,15 @@
                         <h3 class="tool-title">Data Analyzer</h3>
                     </div>
                     <p class="tool-description">
-                        Comprehensive analytics platform for processing customer billing data 
-                        with multi-period analysis and AI-powered insights.
+                        Comprehensive analytics platform for processing customer billing data, 
+                        Trading Partner Reports, and Map configurations with multi-period analysis 
+                        and AI-powered insights.
                     </p>
                     <ul class="tool-features">
                         <li>Multi-file batch processing</li>
-                        <li>5 specialized analysis views</li>
+                        <li>7 specialized analysis views</li>
+                        <li>Trading Partner Communications analysis</li>
+                        <li>Map configuration analysis</li>
                         <li>Trend & seasonality detection</li>
                         <li>Export to multiple formats</li>
                     </ul>
@@ -908,6 +929,101 @@
         </div>
     </section>
 
+    <!-- How to Use Section -->
+    <section class="how-to-use" style="padding: 4rem 0; background: linear-gradient(135deg, #f6f9fc 0%, #e9ecef 100%);">
+        <div class="container">
+            <h2 class="section-title">How to Use Advanced Features</h2>
+            <p class="section-subtitle">Get the most out of the Data Analyzer's new capabilities</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem; margin-top: 3rem;">
+                <!-- Trading Partner Communications -->
+                <div style="background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                    <h3 style="color: #667eea; margin-bottom: 1rem;">📡 Trading Partner Communications</h3>
+                    <p style="color: #4a5568; margin-bottom: 1.5rem;">
+                        Analyze monthly communication volumes from Trading Partner Reports to understand 
+                        integration patterns and optimize partner relationships.
+                    </p>
+                    <h4 style="color: #2d3748; margin-bottom: 0.5rem;">How to Generate TPR Files:</h4>
+                    <ol style="color: #4a5568; line-height: 1.8; padding-left: 1.5rem;">
+                        <li>Log into Trading Grid Online portal (US or EMEA)</li>
+                        <li>Navigate to <strong>Trading Grid Executive Dashboard</strong></li>
+                        <li>Select correct <strong>Solution ID</strong> (upper right)</li>
+                        <li>Go to <strong>Reports</strong> → <strong>Trading Partner Report</strong></li>
+                        <li>Select reporting period (monthly)</li>
+                        <li>Export as CSV and upload to the analyzer</li>
+                    </ol>
+                    <p style="color: #667eea; margin-top: 1rem; font-size: 0.9rem;">
+                        💡 Tip: Load multiple months for trend analysis across communication types
+                    </p>
+                </div>
+
+                <!-- Map Analysis -->
+                <div style="background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                    <h3 style="color: #667eea; margin-bottom: 1rem;">🗺️ Map Analysis</h3>
+                    <p style="color: #4a5568; margin-bottom: 1.5rem;">
+                        Review all configured maps for trading partners, verify coverage, and identify 
+                        integration patterns by document type and direction.
+                    </p>
+                    <h4 style="color: #2d3748; margin-bottom: 0.5rem;">How to Export Map Configurations:</h4>
+                    <ol style="color: #4a5568; line-height: 1.8; padding-left: 1.5rem;">
+                        <li>Access Trading Grid Online portal</li>
+                        <li>Open <strong>Trading Grid Cartographer</strong> tile</li>
+                        <li>Enter <strong>Solution ID</strong> (upper right corner)</li>
+                        <li>Click <strong>Transactions</strong> (upper left)</li>
+                        <li>Select <strong>Export</strong> option</li>
+                        <li>Download CSV file and upload to analyzer</li>
+                    </ol>
+                    <p style="color: #667eea; margin-top: 1rem; font-size: 0.9rem;">
+                        💡 Tip: Cross-reference with billing data to identify unused maps
+                    </p>
+                </div>
+            </div>
+
+            <!-- Key Features -->
+            <div style="background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-top: 2rem;">
+                <h3 style="color: #2d3748; margin-bottom: 1.5rem;">Key Features of New Analysis Tabs</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                    <div>
+                        <h4 style="color: #667eea; margin-bottom: 0.5rem;">✅ Cross-Reference Filtering</h4>
+                        <p style="color: #4a5568; font-size: 0.95rem;">
+                            Filter maps and communications to show only active trading partners from billing data
+                        </p>
+                    </div>
+                    <div>
+                        <h4 style="color: #667eea; margin-bottom: 0.5rem;">📊 Document Type Analysis</h4>
+                        <p style="color: #4a5568; font-size: 0.95rem;">
+                            View statistics by document type including unique maps and trading partner counts
+                        </p>
+                    </div>
+                    <div>
+                        <h4 style="color: #667eea; margin-bottom: 0.5rem;">🔍 Advanced Filtering</h4>
+                        <p style="color: #4a5568; font-size: 0.95rem;">
+                            Search by partner name, EDI address, document type with exact or partial matching
+                        </p>
+                    </div>
+                    <div>
+                        <h4 style="color: #667eea; margin-bottom: 0.5rem;">📈 Trend Visualization</h4>
+                        <p style="color: #4a5568; font-size: 0.95rem;">
+                            Track communication volumes over time with interactive charts and monthly comparisons
+                        </p>
+                    </div>
+                    <div>
+                        <h4 style="color: #667eea; margin-bottom: 0.5rem;">💾 Export Capabilities</h4>
+                        <p style="color: #4a5568; font-size: 0.95rem;">
+                            Export filtered data to JSON or CSV for further analysis or reporting
+                        </p>
+                    </div>
+                    <div>
+                        <h4 style="color: #667eea; margin-bottom: 0.5rem;">🎯 Smart Detection</h4>
+                        <p style="color: #4a5568; font-size: 0.95rem;">
+                            Automatic identification of communication paths and partner mailbox types
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Stats Section -->
     <section class="stats">
         <div class="container">
@@ -921,7 +1037,7 @@
                     <div class="stat-label">% Browser-Based</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number" data-count="5">0</div>
+                    <div class="stat-number" data-count="7">0</div>
                     <div class="stat-label">Analysis Views</div>
                 </div>
                 <div class="stat-item">

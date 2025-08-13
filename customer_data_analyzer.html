@@ -538,61 +538,6 @@
         </div>
     </div>
     
-    <!-- Map Instructions Modal -->
-    <div id="mapInstructionsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000;">
-        <div style="position: relative; max-width: 800px; margin: 50px auto; background: white; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
-            <div style="padding: 30px;">
-                <button onclick="closeMapInstructions()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">×</button>
-                <h2 style="margin-top: 0; color: #2d3748; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">How to Export Transaction Maps from Trading Grid Cartographer</h2>
-                
-                <div style="margin-top: 20px;">
-                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 1: Access the Portal</h3>
-                    <p style="margin-bottom: 10px;">Log into the appropriate Trading Grid Online portal:</p>
-                    <ul style="list-style-type: disc; margin-left: 30px;">
-                        <li style="margin-bottom: 5px;"><strong>US users:</strong> <a href="https://tradinggrid.opentext.com/tgoportal/#/" target="_blank" style="color: #3182ce;">https://tradinggrid.opentext.com/tgoportal/#/</a></li>
-                        <li><strong>EMEA users:</strong> <a href="https://tradinggrid-eu.opentext.com/tgoportal/#/" target="_blank" style="color: #3182ce;">https://tradinggrid-eu.opentext.com/tgoportal/#/</a></li>
-                    </ul>
-                </div>
-                
-                <div style="margin-top: 20px;">
-                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 2: Open Trading Grid Cartographer</h3>
-                    <ol style="list-style-type: decimal; margin-left: 30px;">
-                        <li>Select the <strong>Trading Grid Cartographer</strong> tile from the main dashboard</li>
-                    </ol>
-                </div>
-                
-                <div style="margin-top: 20px;">
-                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 3: Enter Solution ID</h3>
-                    <ol style="list-style-type: decimal; margin-left: 30px;">
-                        <li style="margin-bottom: 5px;">In the <strong>upper right corner</strong>, input the correct <strong>Solution ID</strong> for your customer</li>
-                        <li>Press <strong>Enter</strong> to confirm</li>
-                    </ol>
-                </div>
-                
-                <div style="margin-top: 20px;">
-                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 4: View Transaction Maps</h3>
-                    <ol style="list-style-type: decimal; margin-left: 30px;">
-                        <li style="margin-bottom: 5px;">In the <strong>upper left</strong>, select <strong>Transactions</strong></li>
-                        <li>This will display all maps used by your Trading Partners</li>
-                    </ol>
-                </div>
-                
-                <div style="margin-top: 20px;">
-                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 5: Export Data</h3>
-                    <ol style="list-style-type: decimal; margin-left: 30px;">
-                        <li style="margin-bottom: 5px;">Locate the <strong>export option</strong> in the upper left area</li>
-                        <li style="margin-bottom: 5px;">Click <strong>Export</strong></li>
-                        <li>The file will automatically download as a <strong>CSV file</strong></li>
-                    </ol>
-                </div>
-                
-                <div style="margin-top: 20px; text-align: center;">
-                    <button onclick="closeMapInstructions()" style="padding: 10px 30px; background: #3182ce; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- Menu Button -->
     <button class="menu-button" onclick="toggleMenu()">☰ Menu</button>
     
@@ -1335,22 +1280,6 @@
                     <button id="removeTpr" style="margin-left: 10px; padding: 5px 10px; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove</button>
                 </div>
             </div>
-            
-            <div class="map-upload-section" style="margin-top: 20px; padding: 20px; background: #f5f0ff; border-radius: 8px; border: 1px solid #e0ccff;">
-                <h3 style="margin-top: 0; color: #2d3748;">Map Transaction File (Optional)
-                    <a href="#" onclick="showMapInstructions(); return false;" style="font-size: 0.8em; font-weight: normal; color: #3182ce; text-decoration: none; margin-left: 10px;">How do I generate?</a>
-                </h3>
-                <p style="color: #4a5568; margin-bottom: 15px;">Upload a transaction CSV file to analyze map usage, document types, and trading partners</p>
-                <div class="upload-area" id="mapUploadArea" style="padding: 15px; background: white;">
-                    <p>Drag and drop transaction CSV file here or click to select</p>
-                    <input type="file" id="mapFileInput" accept=".csv" style="display: none;">
-                </div>
-                <div id="mapFileInfo" style="margin-top: 10px; display: none;">
-                    <span style="color: #38a169;">✓ Map transaction file loaded: </span>
-                    <span id="mapFileName"></span>
-                    <button id="removeMap" style="margin-left: 10px; padding: 5px 10px; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove</button>
-                </div>
-            </div>
         
         <div id="fileList" class="file-list"></div>
         
@@ -1493,7 +1422,6 @@ document.addEventListener('DOMContentLoaded', function() {
             debouncedHandleFiles(e.target.files);
         });
     } else {
-        console.error('Upload area or file input not found');
     }
     
     // Handle cross-reference file upload
@@ -1607,55 +1535,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
-    // Map file upload functionality
-    const mapUploadArea = document.getElementById('mapUploadArea');
-    const mapFileInput = document.getElementById('mapFileInput');
-    const mapFileInfo = document.getElementById('mapFileInfo');
-    const mapFileName = document.getElementById('mapFileName');
-    const removeMapBtn = document.getElementById('removeMap');
-    
-    if (mapUploadArea && mapFileInput) {
-        // Enable click-to-upload functionality for Map file
-        mapUploadArea.addEventListener('click', () => {
-            mapFileInput.click();
-        });
-        
-        // Handle drag over event - show visual feedback
-        mapUploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            mapUploadArea.classList.add('dragover');
-        });
-        
-        // Handle drag leave event - remove visual feedback
-        mapUploadArea.addEventListener('dragleave', () => {
-            mapUploadArea.classList.remove('dragover');
-        });
-        
-        // Handle file drop event
-        mapUploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            mapUploadArea.classList.remove('dragover');
-            if (e.dataTransfer.files.length > 0) {
-                handleMapFile(e.dataTransfer.files[0]);
-            }
-        });
-        
-        // Handle file selection via file picker dialog
-        mapFileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleMapFile(e.target.files[0]);
-            }
-        });
-        
-        // Handle remove button
-        removeMapBtn.addEventListener('click', () => {
-            window.mapData = null;
-            mapFileInfo.style.display = 'none';
-            mapFileName.textContent = '';
-            mapFileInput.value = '';
-        });
-    }
 });
 
 /**
@@ -1746,7 +1625,6 @@ function validateFilenameFormat(filename) {
     const acceptableFormat = /^.+\.(xlsx?|xlsm?|csv)$/i;
     
     if (!idealFormat.test(filename) && acceptableFormat.test(filename)) {
-        console.warn(`File "${filename}" may not follow expected naming convention`);
     }
     
     return acceptableFormat.test(filename);
@@ -1760,7 +1638,6 @@ function validateFilenameFormat(filename) {
 function updateFileList() {
     // Ensure file list element exists
     if (!fileList) {
-        console.error('File list element not found');
         return;
     }
     
@@ -1858,8 +1735,6 @@ async function handleXrefFile(file) {
         }
         
         const firstRow = data[0];
-        console.log('First row of cross-reference data:', firstRow);
-        console.log('All column names:', Object.keys(firstRow));
         
         // Find columns case-insensitively
         const columns = Object.keys(firstRow);
@@ -1885,8 +1760,6 @@ async function handleXrefFile(file) {
             if (!nameColumn) missingCols.push('Name');
             if (!regionColumn) missingCols.push('Region');
             
-            console.error('Missing columns:', missingCols);
-            console.error('Available columns:', columns);
             
             throw new Error(`Cross-reference file must contain ID, Name, and Region columns. Missing: ${missingCols.join(', ')}. Found columns: ${columns.join(', ')}`);
         }
@@ -1916,7 +1789,6 @@ async function handleXrefFile(file) {
         }
         
     } catch (error) {
-        console.error('Error processing cross-reference file:', error);
         alert('Error loading cross-reference file: ' + error.message);
         
         // Reset UI
@@ -1985,7 +1857,6 @@ async function handleTprFile(file) {
         // Find the Partner Mailbox Type column and date columns
         const firstRow = data[0];
         const columns = Object.keys(firstRow);
-        console.log('TPR columns found:', columns);
         
         // Find Partner Mailbox Type column (specifically "Partner Mailbox Type", not "Your Mailbox Type")
         const mailboxTypeColumn = columns.find(col => 
@@ -2007,9 +1878,6 @@ async function handleTprFile(file) {
             /partner|trading.*partner|tp.*id|tp.*name|sender|receiver/i.test(col)
         );
         
-        console.log('Found mailbox type column:', mailboxTypeColumn);
-        console.log('Found date columns:', dateColumns);
-        console.log('Found partner columns:', partnerColumns);
         
         // Deduplicate records based on Partner EDI Address or Display Name
         const deduplicatedData = [];
@@ -2095,7 +1963,6 @@ async function handleTprFile(file) {
             deduplicatedData.push(record);
         });
         
-        console.log(`Deduplicated ${data.length} records to ${deduplicatedData.length} unique partners`);
         
         // Store the deduplicated TPR data globally
         window.tprData = {
@@ -2119,7 +1986,6 @@ async function handleTprFile(file) {
         }
         
     } catch (error) {
-        console.error('Error processing Trading Partner Report file:', error);
         alert('Error loading Trading Partner Report: ' + error.message);
         
         // Reset UI
@@ -2130,197 +1996,11 @@ async function handleTprFile(file) {
 }
 
 /**
- * Handle Map Transaction file upload
- * @param {File} file - The Map transaction CSV file to process
- */
-async function handleMapFile(file) {
-    try {
-        const mapFileInfo = document.getElementById('mapFileInfo');
-        const mapFileName = document.getElementById('mapFileName');
-        
-        // Show loading state
-        mapFileName.textContent = 'Loading...';
-        mapFileInfo.style.display = 'block';
-        
-        // Read and parse CSV file
-        const text = await file.text();
-        
-        // Parse CSV using PapaParse
-        const parseResult = Papa.parse(text, {
-            header: true,
-            skipEmptyLines: true,
-            dynamicTyping: true
-        });
-        
-        if (parseResult.errors.length > 0) {
-            console.warn('CSV parsing warnings:', parseResult.errors);
-        }
-        
-        const data = parseResult.data;
-        
-        if (!data || data.length === 0) {
-            throw new Error('No data found in the CSV file');
-        }
-        
-        // Validate required columns
-        const columns = Object.keys(data[0]);
-        const requiredColumns = ['Map Name', 'Document Type', 'Direction', 'Sender ID', 'Receiver ID'];
-        const missingColumns = requiredColumns.filter(col => !columns.includes(col));
-        
-        if (missingColumns.length > 0) {
-            throw new Error('Missing required columns: ' + missingColumns.join(', '));
-        }
-        
-        // Process the map data
-        const mapAnalysis = processMapData(data);
-        
-        // Store the processed data globally
-        window.mapData = {
-            raw: data,
-            analysis: mapAnalysis,
-            fileName: file.name
-        };
-        
-        // Update UI
-        mapFileName.textContent = file.name + ' (' + data.length + ' transactions)';
-        console.log('Map file loaded successfully:', file.name);
-        console.log('Map analysis:', mapAnalysis);
-        
-        // Refresh report if already generated
-        const reportFrame = document.getElementById('reportFrame');
-        if (reportFrame && reportFrame.srcdoc && window.lastAnalysisData && window.analyzer) {
-            regenerateReportWithMap(window.lastAnalysisData);
-        }
-        
-    } catch (error) {
-        console.error('Error processing Map transaction file:', error);
-        alert('Error loading Map transaction file: ' + error.message);
-        
-        // Reset UI
-        document.getElementById('mapFileInfo').style.display = 'none';
-        document.getElementById('mapFileName').textContent = '';
-        window.mapData = null;
-    }
-}
-
-/**
- * Process map transaction data to extract insights
- * @param {Array} data - Raw CSV data
- * @returns {Object} Processed map analysis
- */
-function processMapData(data) {
-    const analysis = {
-        maps: {},           // Map name -> details
-        tpUsage: {},        // TP ID -> maps they use
-        docTypes: {},       // Document type -> maps
-        summary: {
-            totalMaps: 0,
-            totalTPs: new Set(),
-            totalDocTypes: new Set(),
-            totalTransactions: data.length
-        }
-    };
-    
-    // Process each transaction
-    data.forEach(row => {
-        const mapName = row['Map Name'];
-        const docType = row['Document Type'];
-        const direction = row['Direction'];
-        const senderId = row['Sender ID'];
-        const receiverId = row['Receiver ID'];
-        
-        // Determine TP ID based on direction
-        const tpId = direction === 'Outbound' ? receiverId : senderId;
-        
-        // Initialize map entry if not exists
-        if (!analysis.maps[mapName]) {
-            analysis.maps[mapName] = {
-                docType: docType,
-                tps: new Set(),
-                directions: { inbound: 0, outbound: 0 },
-                transactions: 0
-            };
-        }
-        
-        // Update map data
-        analysis.maps[mapName].tps.add(tpId);
-        analysis.maps[mapName].directions[direction.toLowerCase()]++;
-        analysis.maps[mapName].transactions++;
-        
-        // Initialize TP usage if not exists
-        if (!analysis.tpUsage[tpId]) {
-            analysis.tpUsage[tpId] = {
-                maps: new Set(),
-                docTypes: new Set(),
-                transactions: 0
-            };
-        }
-        
-        // Update TP usage
-        analysis.tpUsage[tpId].maps.add(mapName);
-        analysis.tpUsage[tpId].docTypes.add(docType);
-        analysis.tpUsage[tpId].transactions++;
-        
-        // Initialize doc type entry if not exists
-        if (!analysis.docTypes[docType]) {
-            analysis.docTypes[docType] = {
-                maps: new Set(),
-                tps: new Set(),
-                transactions: 0
-            };
-        }
-        
-        // Update doc type data
-        analysis.docTypes[docType].maps.add(mapName);
-        analysis.docTypes[docType].tps.add(tpId);
-        analysis.docTypes[docType].transactions++;
-        
-        // Update summary
-        analysis.summary.totalTPs.add(tpId);
-        analysis.summary.totalDocTypes.add(docType);
-    });
-    
-    // Convert Sets to counts for summary
-    analysis.summary.totalMaps = Object.keys(analysis.maps).length;
-    analysis.summary.totalTPs = analysis.summary.totalTPs.size;
-    analysis.summary.totalDocTypes = analysis.summary.totalDocTypes.size;
-    
-    // Convert Sets to arrays for easier handling
-    Object.values(analysis.maps).forEach(map => {
-        map.tps = Array.from(map.tps);
-    });
-    
-    Object.values(analysis.tpUsage).forEach(tp => {
-        tp.maps = Array.from(tp.maps);
-        tp.docTypes = Array.from(tp.docTypes);
-    });
-    
-    Object.values(analysis.docTypes).forEach(doc => {
-        doc.maps = Array.from(doc.maps);
-        doc.tps = Array.from(doc.tps);
-    });
-    
-    return analysis;
-}
-
-/**
- * Regenerate report with Map data
- * @param {Object} analysisData - The analysis data to use for regeneration
- */
-function regenerateReportWithMap(analysisData) {
-    if (window.analyzer) {
-        const html = window.analyzer.generateHtmlReport(analysisData);
-        document.getElementById('reportFrame').srcdoc = html;
-    }
-}
-
-/**
  * Regenerate report with TPR data
  * @param {Object} analysisData - The stored analysis data
  */
 async function regenerateReportWithTPR(analysisData) {
     if (!window.analyzer) {
-        console.error('Analyzer not initialized');
         return;
     }
     
@@ -2336,6 +2016,9 @@ async function regenerateReportWithTPR(analysisData) {
         
         // Generate HTML report with current TPR data
         const reportHtml = window.analyzer.generateHtmlReport(analysisData, insights);
+        
+        // Store the report HTML for export functionality
+        window.lastGeneratedReportHTML = reportHtml;
         
         // Display report in iframe
         const reportFrame = document.getElementById('reportFrame');
@@ -2360,7 +2043,6 @@ async function regenerateReportWithTPR(analysisData) {
             // when the iframe content loads with the embedded scripts
         };
     } catch (error) {
-        console.error('Error regenerating report:', error);
         alert('Error updating report with TPR data: ' + error.message);
     }
 }
@@ -2554,7 +2236,6 @@ class DynamicDataAnalyzer {
             
             return true;
         } catch (error) {
-            console.error('Error detecting sheets:', error);
             return false;
         }
     }
@@ -2662,7 +2343,6 @@ class DynamicDataAnalyzer {
                 categories: metrics.categories
             };
         } catch (error) {
-            console.error(`Error extracting ${sheetName}:`, error);
             return null;
         }
     }
@@ -2922,7 +2602,6 @@ class DynamicDataAnalyzer {
             const result = await response.json();
             return result.content[0].text;
         } catch (error) {
-            console.error('Error calling Claude API:', error);
             return this.generateDefaultInsights(data);
         }
     }
@@ -3020,33 +2699,151 @@ The data shows operational activity patterns across multiple dimensions...`;
         const usageMB = usage / 1024 / 1024;
         
         if (usage > this.memoryLimit) {
-            console.warn(`Memory usage (${usageMB.toFixed(2)}MB) exceeds limit (${limitMB}MB). Clearing cache.`);
             this.clearMemory();
         }
     }
     
+    // Helper function to escape HTML special characters
+    escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+    
+    // Helper function to safely stringify JSON for embedding in HTML script tags
+    safeStringify(obj) {
+        if (obj === null || obj === undefined) {
+            return 'null';
+        }
+        // First stringify the object - this already escapes quotes properly
+        let jsonStr = JSON.stringify(obj);
+        // Only escape what could break script tags
+        // We don't need to escape quotes since JSON.stringify already handles them
+        // We only need to prevent closing script tags from appearing in the output
+        const scriptPattern = new RegExp('<' + '/script>', 'gi');
+        jsonStr = jsonStr.replace(scriptPattern, '<' + '\\/script>');
+        return jsonStr;
+    }
+    
+    /**
+     * Comprehensive data sanitization for all data before HTML generation
+     * Recursively sanitizes all string values in objects and arrays
+     */
+    sanitizeDataForHTML(data) {
+        if (data === null || data === undefined) {
+            return data;
+        }
+        
+        if (typeof data === 'string') {
+            // Escape HTML special characters
+            return this.escapeHtml(data);
+        }
+        
+        if (Array.isArray(data)) {
+            return data.map(item => this.sanitizeDataForHTML(item));
+        }
+        
+        if (typeof data === 'object') {
+            const sanitized = {};
+            for (const key in data) {
+                if (data.hasOwnProperty(key)) {
+                    // Sanitize the key itself
+                    const sanitizedKey = this.escapeHtml(key);
+                    // Recursively sanitize the value
+                    sanitized[sanitizedKey] = this.sanitizeDataForHTML(data[key]);
+                }
+            }
+            return sanitized;
+        }
+        
+        // For numbers, booleans, etc., return as-is
+        return data;
+    }
+    
+    /**
+     * Sanitize data specifically for JavaScript variable assignments
+     * This is stronger than HTML escaping and prevents JS injection
+     */
+    sanitizeForJavaScript(data) {
+        if (data === null || data === undefined) {
+            return data;
+        }
+        
+        // For strings, use JSON.stringify which handles all escaping
+        if (typeof data === 'string') {
+            return JSON.stringify(data);
+        }
+        
+        // For objects and arrays, deep clone and sanitize strings
+        if (typeof data === 'object') {
+            const cleaned = JSON.parse(JSON.stringify(data));
+            return this.sanitizeObjectStrings(cleaned);
+        }
+        
+        return data;
+    }
+    
+    /**
+     * Helper to sanitize all string values in an object/array
+     */
+    sanitizeObjectStrings(obj) {
+        if (obj === null || obj === undefined) {
+            return obj;
+        }
+        
+        if (typeof obj === 'string') {
+            // Remove any potential script injections
+            return obj
+                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                .replace(/javascript:/gi, '')
+                .replace(/on\w+\s*=/gi, '');
+        }
+        
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.sanitizeObjectStrings(item));
+        }
+        
+        if (typeof obj === 'object') {
+            const result = {};
+            for (const key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    result[key] = this.sanitizeObjectStrings(obj[key]);
+                }
+            }
+            return result;
+        }
+        
+        return obj;
+    }
+    
     generateHtmlReport(data, insights) {
-        // Store data reference
-        this.reportData = data;
+        // Sanitize all data before using it to prevent XSS and injection attacks
+        const sanitizedData = this.sanitizeObjectStrings(JSON.parse(JSON.stringify(data)));
+        
+        // Store data reference (use sanitized version)
+        this.reportData = sanitizedData;
         
         // Extract document data first if not already done
         if (!this.docData) {
-            this.docData = this.extractDocumentData(data);
+            this.docData = this.extractDocumentData(sanitizedData);
         }
         
         // Ensure docData is available in the data object
-        if (this.docData && !data.docData) {
-            data.docData = this.docData;
+        if (this.docData && !sanitizedData.docData) {
+            sanitizedData.docData = this.docData;
         }
         
-        // Generate individual sections
-        const monthlyAnalysis = this.generateMonthlyAnalysis(data);
-        const momAnalysis = this.generateMomAnalysis(data);
-        const tpAnalysis = this.generateTpAnalysis(data);
-        const docAnalysis = this.generateDocumentAnalysis(data);
-        const hubAnalysis = this.generateHubAnalysis(data);
-        const tprAnalysis = this.generateTprAnalysis(data);
-        const mapAnalysis = this.generateMapAnalysis(data);
+        // Generate individual sections (using sanitized data)
+        const monthlyAnalysis = this.generateMonthlyAnalysis(sanitizedData);
+        const momAnalysis = this.generateMomAnalysis(sanitizedData);
+        const tpAnalysis = this.generateTpAnalysis(sanitizedData);
+        const docAnalysis = this.generateDocumentAnalysis(sanitizedData);
+        const hubAnalysis = this.generateHubAnalysis(sanitizedData);
+        const tprAnalysis = this.generateTprAnalysis(sanitizedData);
         const formattedInsights = this.formatAIInsights(insights);
         
         const insightsContent = `<div class="insights-section">
@@ -3055,14 +2852,14 @@ The data shows operational activity patterns across multiple dimensions...`;
         </div>`;
         
         // Get sorted periods for date range
-        const sortedPeriods = Object.keys(data.summary).sort();
+        const sortedPeriods = Object.keys(sanitizedData.summary).sort();
         const firstPeriod = sortedPeriods[0];
         const lastPeriod = sortedPeriods[sortedPeriods.length - 1];
         
         const html = `<!DOCTYPE html>
 <html>
 <head>
-    <title>${this.customerName} Customer Traffic Analysis</title>
+    <title>${this.escapeHtml(this.customerName)} Customer Traffic Analysis</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         
@@ -4141,7 +3938,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             font-weight: bold;
         }
     </style>
-    <script>
+    <scr${'ipt>'}
         // Helper function to check for cross-reference data
         function hasCrossReference() {
             return window.idCrossReference && Object.keys(window.idCrossReference).length > 0;
@@ -4591,8 +4388,8 @@ The data shows operational activity patterns across multiple dimensions...`;
                 }, 500);
             });
         }
-    </scr` + `ipt>
-    <scr` + `ipt src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></scr` + `ipt>
+    </scr${'ipt>'}
+    <scr${'ipt'} src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></scr${'ipt>'}
 </head>
 <body>
     <div class="container">
@@ -4607,7 +4404,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             <div style="position: absolute; top: 10px; right: 15px; background: rgba(251, 191, 36, 0.15); backdrop-filter: blur(8px); border: 1px solid rgba(251, 191, 36, 0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 600; letter-spacing: 0.5px; color: #fef3c7;">
                 ⚠️ INTERNAL USE ONLY
             </div>
-            <h1>${this.customerName}</h1>
+            <h1>${this.escapeHtml(this.customerName)}</h1>
             <div class="subtitle">Customer Traffic Analysis</div>
             <div class="date-range">
                 ${this.formatPeriodDisplay(firstPeriod)} — ${this.formatPeriodDisplay(lastPeriod)}
@@ -4622,7 +4419,6 @@ The data shows operational activity patterns across multiple dimensions...`;
             <button class="tab" onclick="showTab('tpanalysis')">🤝 TP Analysis</button>
             <button class="tab" onclick="showTab('docanalysis')">📄 Document Analysis</button>
             ${tprAnalysis ? '<button class="tab" onclick="showTab(\'tpranalysis\')">📡 TP Communications</button>' : ''}
-            ${mapAnalysis ? '<button class="tab" onclick="showTab(\'mapanalysis\')">🗺️ Map Analysis</button>' : ''}
         </div>
         
         
@@ -4659,15 +4455,8 @@ The data shows operational activity patterns across multiple dimensions...`;
         </div>
         ` : ''}
         
-        <!-- Map Analysis Tab -->
-        ${mapAnalysis ? `
-        <div id="mapanalysis" class="tab-content">
-            ${mapAnalysis}
-        </div>
-        ` : ''}
-        
         <div class="footer">
-            <p><strong>${this.customerName}</strong> | Operational Excellence Through Data</p>
+            <p><strong>${this.escapeHtml(this.customerName)}</strong> | Operational Excellence Through Data</p>
             <p>Report Generated: ${new Date().toLocaleString('en-US', { 
                 year: 'numeric', 
                 month: 'long', 
@@ -4679,10 +4468,10 @@ The data shows operational activity patterns across multiple dimensions...`;
         </div>
     </div>
     
-    <script>
+    <scr${'ipt>'}
     // Embed cross-reference data if available
     ${window.idCrossReference ? `
-    window.idCrossReference = ${JSON.stringify(window.idCrossReference)};
+    window.idCrossReference = ${this.safeStringify(window.idCrossReference)};
     ` : ''}
     
     // Ensure all ID/Name/Region filter buttons are visible in saved reports
@@ -4698,7 +4487,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             });
         }
     });
-    </scr` + `ipt>
+    </scr${'ipt>'}
 </body>
 </html>`;
         
@@ -5745,12 +5534,12 @@ The data shows operational activity patterns across multiple dimensions...`;
         const kcData = this.prepareChartData(data, sortedPeriods, 'TOTAL-KCS');
         
         // Stringify and escape the data
-        const docDataStr = JSON.stringify(docData).replace(/</g, '\\u003c');
-        const kcDataStr = JSON.stringify(kcData).replace(/</g, '\\u003c');
+        const docDataStr = this.safeStringify(docData);
+        const kcDataStr = this.safeStringify(kcData);
         
         // Add chart configurations to global scope
         const chartScript = `
-        <scr` + `ipt>
+        <scr${'ipt>'}
             window.chartConfigs = [
                 {
                     id: 'docVolumeChart',
@@ -5987,18 +5776,17 @@ The data shows operational activity patterns across multiple dimensions...`;
         </div>`;
         
         // Add the script to populate the seasonality display
-        html += '<scr' + 'ipt>' + `
+        html += `<scr${'ipt>'}` + `
         // Store data globally for filter updates
         try {
             window.seasonalityData = {
                 all: {
-                    factors: ${JSON.stringify(seasonalityFactors).replace(/</g, '\\u003c')},
+                    factors: ${this.safeStringify(seasonalityFactors)},
                     average: ${isNaN(overallAverage) ? 0 : overallAverage}
                 },
-                yearly: ${JSON.stringify(yearlySeasonalityFactors).replace(/</g, '\\u003c')}
+                yearly: ${this.safeStringify(yearlySeasonalityFactors)}
             };
         } catch (e) {
-            console.error('Error setting seasonality data:', e);
         }
         
         function updateSeasonalityDisplay() {
@@ -6148,7 +5936,7 @@ The data shows operational activity patterns across multiple dimensions...`;
         setTimeout(() => {
             updateSeasonalityDisplay();
         }, 100);` +
-        '</scr' + 'ipt>';
+        `</scr${'ipt>'}`;
         
         return html;
     }
@@ -6881,7 +6669,7 @@ The data shows operational activity patterns across multiple dimensions...`;
         
         // Add JavaScript for toggle functionality
         html += `
-        <script>
+        <scr${'ipt>'}
         function setTPView(view) {
             const docsBtn = document.getElementById('tp-view-docs');
             const kcsBtn = document.getElementById('tp-view-kcs');
@@ -7425,7 +7213,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 }
             }
         };
-        </scr` + `ipt>`;
+        </scr${'ipt>'}`;
         
         return html;
     }
@@ -8975,13 +8763,13 @@ The data shows operational activity patterns across multiple dimensions...`;
         ];
         
         return `
-        <scr` + `ipt>
+        <scr${'ipt>'}
         // Store hub chart data globally for updates
         window.hubChartData = {
-            hubIds: ${JSON.stringify(hubIds)},
-            docData: ${JSON.stringify(docData)},
-            kcData: ${JSON.stringify(kcData)},
-            colors: ${JSON.stringify(colors.slice(0, hubLabels.length))},
+            hubIds: ${this.safeStringify(hubIds)},
+            docData: ${this.safeStringify(docData)},
+            kcData: ${this.safeStringify(kcData)},
+            colors: ${this.safeStringify(colors.slice(0, hubLabels.length))},
             displayMode: 'id',
             charts: {}
         };
@@ -9107,10 +8895,10 @@ The data shows operational activity patterns across multiple dimensions...`;
                 window.hubChartData.charts.docChart = new Chart(docCtx.getContext('2d'), {
                     type: 'pie',
                     data: {
-                        labels: ${JSON.stringify(hubLabels)},
+                        labels: ${this.safeStringify(hubLabels)},
                         datasets: [{
-                            data: ${JSON.stringify(docData)},
-                            backgroundColor: ${JSON.stringify(colors.slice(0, hubLabels.length))},
+                            data: ${this.safeStringify(docData)},
+                            backgroundColor: ${this.safeStringify(colors.slice(0, hubLabels.length))},
                             borderColor: 'rgba(255, 255, 255, 0.8)',
                             borderWidth: 2
                         }]
@@ -9168,10 +8956,10 @@ The data shows operational activity patterns across multiple dimensions...`;
                 window.hubChartData.charts.kcChart = new Chart(kcCtx.getContext('2d'), {
                     type: 'pie',
                     data: {
-                        labels: ${JSON.stringify(hubLabels)},
+                        labels: ${this.safeStringify(hubLabels)},
                         datasets: [{
-                            data: ${JSON.stringify(kcData)},
-                            backgroundColor: ${JSON.stringify(colors.slice(0, hubLabels.length))},
+                            data: ${this.safeStringify(kcData)},
+                            backgroundColor: ${this.safeStringify(colors.slice(0, hubLabels.length))},
                             borderColor: 'rgba(255, 255, 255, 0.8)',
                             borderWidth: 2
                         }]
@@ -9223,7 +9011,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 });
             }
         }, 100);
-        </scr` + `ipt>`;
+        </scr${'ipt>'}`;
     }
     
     generateHubTrendCharts(hubData) {
@@ -9255,9 +9043,9 @@ The data shows operational activity patterns across multiple dimensions...`;
         };
         
         return `
-        <scr` + `ipt>
+        <scr${'ipt>'}
         // Store hub data for filter updates
-        window.hubTrendData = ${JSON.stringify(globalHubData)};
+        window.hubTrendData = ${this.safeStringify(globalHubData)};
         window.hubTrendDisplayMode = 'id';
         
         // Function to update hub trend display mode
@@ -9465,7 +9253,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 new Chart(docCtx.getContext('2d'), {
                     type: 'line',
                     data: {
-                        labels: ${JSON.stringify(formattedPeriods)},
+                        labels: ${this.safeStringify(formattedPeriods)},
                         datasets: initialHubs.map((hubId, index) => {
                             const data = window.hubTrendData.periods.map(period => 
                                 window.hubTrendData.periodData[hubId] && window.hubTrendData.periodData[hubId][period] ?
@@ -9538,7 +9326,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 new Chart(kcCtx.getContext('2d'), {
                     type: 'line',
                     data: {
-                        labels: ${JSON.stringify(formattedPeriods)},
+                        labels: ${this.safeStringify(formattedPeriods)},
                         datasets: initialHubs.map((hubId, index) => {
                             const data = window.hubTrendData.periods.map(period => 
                                 window.hubTrendData.periodData[hubId] && window.hubTrendData.periodData[hubId][period] ?
@@ -9612,13 +9400,13 @@ The data shows operational activity patterns across multiple dimensions...`;
                 }
             }
         }, 100);
-        </scr` + `ipt>`;
+        </scr${'ipt>'}`;
     }
     
     // REMOVED: generateHubNetworkScript
     generateHubNetworkScript(hubData) {
         return `
-        <scr` + `ipt>
+        <scr${'ipt>'}
         setTimeout(() => {
             // Hub Volume Chart
             const volumeCtx = document.getElementById('hubVolumeChart');
@@ -9626,17 +9414,17 @@ The data shows operational activity patterns across multiple dimensions...`;
                 new Chart(volumeCtx.getContext('2d'), {
                     type: 'bar',
                     data: {
-                        labels: ${JSON.stringify(hubData.hubs.slice(0, 10).map(h => h.id))},
+                        labels: ${this.safeStringify(hubData.hubs.slice(0, 10).map(h => h.id))},
                         datasets: [{
                             label: 'Documents',
-                            data: ${JSON.stringify(hubData.hubs.slice(0, 10).map(h => h.docCount))},
+                            data: ${this.safeStringify(hubData.hubs.slice(0, 10).map(h => h.docCount))},
                             backgroundColor: 'rgba(59, 130, 246, 0.6)',
                             borderColor: 'rgba(59, 130, 246, 1)',
                             borderWidth: 1
                         },
                         {
                             label: 'Kilocharacters',
-                            data: ${JSON.stringify(hubData.hubs.slice(0, 10).map(h => h.kcCount))},
+                            data: ${this.safeStringify(hubData.hubs.slice(0, 10).map(h => h.kcCount))},
                             backgroundColor: 'rgba(16, 185, 129, 0.6)',
                             borderColor: 'rgba(16, 185, 129, 1)',
                             borderWidth: 1,
@@ -9707,7 +9495,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 ctx.strokeStyle = 'rgba(156, 163, 175, 0.3)';
                 ctx.lineWidth = 1;
                 
-                ${JSON.stringify(hubData.hubs)}.forEach((hub, i) => {
+                ${this.safeStringify(hubData.hubs)}.forEach((hub, i) => {
                     const x1 = centerX + radius * Math.cos(i * angleStep);
                     const y1 = centerY + radius * Math.sin(i * angleStep);
                     
@@ -9719,7 +9507,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 });
                 
                 // Draw hub nodes
-                ${JSON.stringify(hubData.hubs)}.forEach((hub, i) => {
+                ${this.safeStringify(hubData.hubs)}.forEach((hub, i) => {
                     const x = centerX + radius * Math.cos(i * angleStep);
                     const y = centerY + radius * Math.sin(i * angleStep);
                     const nodeSize = 10 + (hub.connections / 2);
@@ -9750,7 +9538,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 ctx.fillText('HUB', centerX, centerY);
             }
         }, 100);
-        </scr` + `ipt>`;
+        </scr${'ipt>'}`;
     }
     
     formatCurrency(value, short = false) {
@@ -9780,15 +9568,12 @@ The data shows operational activity patterns across multiple dimensions...`;
         const activeTPs = new Set();
         
         // Debug logging
-        console.log('getActiveTPsFromData - Input data:', data);
         
         // First try the same method as extractTPData uses
         if (data && data.tp_data) {
-            console.log('Found tp_data in data structure');
             for (const [period, periodData] of Object.entries(data.tp_data)) {
                 for (const [sheetName, sheetRows] of Object.entries(periodData)) {
                     if (sheetName === 'TP_Summary' && Array.isArray(sheetRows)) {
-                        console.log('Processing ' + sheetRows.length + ' rows from TP_Summary in period ' + period);
                         sheetRows.forEach(row => {
                             // Extract TP ID - handle various column names (same as extractTPData)
                             let tpId = null;
@@ -9822,7 +9607,6 @@ The data shows operational activity patterns across multiple dimensions...`;
                     
                     // Also check TP_Doc_Summary
                     if (sheetName === 'TP_Doc_Summary' && Array.isArray(sheetRows)) {
-                        console.log('Processing ' + sheetRows.length + ' rows from TP_Doc_Summary in period ' + period);
                         sheetRows.forEach(row => {
                             // Extract TP ID from TP_Doc_Summary
                             for (const [key, value] of Object.entries(row)) {
@@ -9845,8 +9629,6 @@ The data shows operational activity patterns across multiple dimensions...`;
                 }
             }
             
-            console.log('Found ' + activeTPs.size + ' unique TP IDs from tp_data');
-            console.log('Sample TP IDs extracted (first 10):', Array.from(activeTPs).slice(0, 10));
             if (activeTPs.size > 0) {
                 return activeTPs;
             }
@@ -9854,15 +9636,12 @@ The data shows operational activity patterns across multiple dimensions...`;
         
         // Fallback: Check if we have TP data in other structures
         if (!data || !data.tp_data) {
-            console.log('getActiveTPsFromData - No tp_data found in data, checking alternatives');
             
             // Try to find TPs in the main analyzer data structure
             if (window.analyzer && window.analyzer.allData) {
-                console.log('Checking analyzer.allData for TPs...');
                 Object.entries(window.analyzer.allData).forEach(([period, sheets]) => {
                     Object.entries(sheets).forEach(([sheetName, sheetData]) => {
                         if (sheetName === 'TP_Summary' || sheetName === 'TP_Doc_Summary') {
-                            console.log('Found ' + sheetName + ' in period ' + period);
                             if (Array.isArray(sheetData) && sheetData.length > 0) {
                                 sheetData.forEach(record => {
                                     // Check various possible TP ID column names (NOT names, only IDs)
@@ -9896,12 +9675,10 @@ The data shows operational activity patterns across multiple dimensions...`;
             
             // Also try to find TPs in summary data
             if (data && data.summary) {
-                console.log('Checking summary data for TPs...');
                 Object.values(data.summary).forEach(periodData => {
                     // Check all sheets for TP-related columns
                     Object.entries(periodData).forEach(([sheetName, sheetData]) => {
                         if (sheetName === 'TP_Summary' || sheetName === 'TP_Doc_Summary') {
-                            console.log('Found ' + sheetName + ' in summary');
                             if (Array.isArray(sheetData) && sheetData.length > 0) {
                                 sheetData.forEach(record => {
                                     // Check various possible TP ID column names (NOT names, only IDs)
@@ -9933,14 +9710,12 @@ The data shows operational activity patterns across multiple dimensions...`;
                 });
             }
             
-            console.log('Found ' + activeTPs.size + ' TPs from summary data');
             return activeTPs.size > 0 ? activeTPs : null;
         }
         
         // Extract all unique TPs from all periods
         Object.values(data.tp_data).forEach(periodData => {
             if (periodData['TP_Summary']) {
-                console.log('Found TP_Summary sheet');
                 periodData['TP_Summary'].forEach(tp => {
                     // Add various forms of the TP identifier
                     if (tp.Trade_Partner) {
@@ -9964,7 +9739,6 @@ The data shows operational activity patterns across multiple dimensions...`;
             
             // Also check TP_Doc_Summary for additional TPs
             if (periodData['TP_Doc_Summary']) {
-                console.log('Found TP_Doc_Summary sheet');
                 periodData['TP_Doc_Summary'].forEach(tp => {
                     if (tp.Trade_Partner) {
                         activeTPs.add(tp.Trade_Partner.trim());
@@ -9976,7 +9750,6 @@ The data shows operational activity patterns across multiple dimensions...`;
             }
         });
         
-        console.log(`getActiveTPsFromData - Found ${activeTPs.size} unique TPs`);
         return activeTPs.size > 0 ? activeTPs : null;
     }
     
@@ -9999,8 +9772,6 @@ The data shows operational activity patterns across multiple dimensions...`;
         const hasActiveTPs = activeTPs && activeTPs.size > 0;
         
         // Log for debugging
-        console.log('TPR Analysis - Document data loaded:', hasDocumentData);
-        console.log('TPR Analysis - Active TPs found:', hasActiveTPs ? activeTPs.size : 0);
         
         let html = `<div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
             <h3 style="margin-top: 0; color: #1a365d; margin-bottom: 30px;">📡 Trading Partner Communications
@@ -10071,13 +9842,13 @@ The data shows operational activity patterns across multiple dimensions...`;
         
         // Add the update function script
         html += `
-        <scr` + `ipt>
+        <scr${'ipt>'}
         // Embed TPR data for persistence
-        window.tprData = ${JSON.stringify(tprData)};
-        window.tprOriginalRecords = ${JSON.stringify(allRecords)};
-        window.activeTPs = ${activeTPs ? `new Set(${JSON.stringify(Array.from(activeTPs))})` : 'null'};
+        window.tprData = ${this.safeStringify(tprData)};
+        window.tprOriginalRecords = ${this.safeStringify(allRecords)};
+        window.activeTPs = ${activeTPs ? `new Set(${this.safeStringify(Array.from(activeTPs))})` : 'null'};
         // Pass the actual billing data from analyzer.allData instead of data.tp_data
-        window.analyzerData = ${analyzer && analyzer.allData ? JSON.stringify(analyzer.allData) : 'null'};
+        window.analyzerData = ${analyzer && analyzer.allData ? this.safeStringify(analyzer.allData) : 'null'};
         
         // Function to update TPR display based on filter
         window.toggleActiveTPFilter = function() {
@@ -10089,7 +9860,6 @@ The data shows operational activity patterns across multiple dimensions...`;
         window.updateTPRDisplay = function(isFiltered) {
             // Check if TPR data is available
             if (!window.tprData) {
-                console.log('TPR data not yet available, waiting...');
                 return;
             }
             
@@ -10103,10 +9873,6 @@ The data shows operational activity patterns across multiple dimensions...`;
             if (isFiltered && activeTPs && activeTPs.size > 0) {
                 const ediAddressColumn = tprData.columns.find(col => /partner.*edi.*address/i.test(col));
                 
-                console.log('Filtering TPR records by TP ID only. Active TP IDs count:', activeTPs.size);
-                console.log('Active TP IDs (first 20):', Array.from(activeTPs).slice(0, 20));
-                console.log('EDI Address column name:', ediAddressColumn);
-                console.log('Sample TPR EDI Addresses (first 20):', allRecords.slice(0, 20).map(r => r[ediAddressColumn]));
                 
                 // Create a map to track matches for debugging
                 const matchMap = new Map();
@@ -10139,19 +9905,16 @@ The data shows operational activity patterns across multiple dimensions...`;
                     if (isMatch) {
                         matchCount++;
                         if (matchCount <= 5) {
-                            console.log('Match #' + matchCount + ': "' + ediAddress + '" matched');
                         }
                     } else {
                         noMatchCount++;
                         if (noMatchCount <= 5) {
-                            console.log('No match #' + noMatchCount + ': "' + ediAddress + '" - variations checked:', variations);
                         }
                     }
                     
                     return isMatch;
                 });
                 
-                console.log('Filter results: ' + matchCount + ' matches, ' + noMatchCount + ' non-matches');
             }
             
             // Update filter status
@@ -10467,25 +10230,17 @@ The data shows operational activity patterns across multiple dimensions...`;
                 return '<div style="color: #6b7280;">No billing data available for weight analysis.</div>';
             }
             
-            console.log('calculateWeightFromBillingData - TPR records passed:', tprRecords.length);
-            console.log('Analyzer data type:', typeof window.analyzerData);
-            console.log('Analyzer data keys:', window.analyzerData ? Object.keys(window.analyzerData).slice(0, 5) : 'none');
             
             // Check if this is the wrong data structure
             if (window.analyzerData && window.analyzerData.tp_data) {
-                console.log('Found tp_data in analyzerData, using that instead');
                 window.analyzerData = window.analyzerData.tp_data;
             }
             
-            console.log('First period data:', window.analyzerData ? Object.keys(window.analyzerData)[0] : 'none');
             if (window.analyzerData) {
                 const firstPeriod = Object.keys(window.analyzerData)[0];
                 if (firstPeriod) {
-                    console.log('Sheets in first period:', Object.keys(window.analyzerData[firstPeriod] || {}));
                     if (window.analyzerData[firstPeriod] && window.analyzerData[firstPeriod]['TP_Summary']) {
-                        console.log('TP_Summary structure:', window.analyzerData[firstPeriod]['TP_Summary']);
                         if (window.analyzerData[firstPeriod]['TP_Summary'].data) {
-                            console.log('First TP_Summary.data row:', window.analyzerData[firstPeriod]['TP_Summary'].data[0]);
                         }
                     }
                 }
@@ -10514,7 +10269,6 @@ The data shows operational activity patterns across multiple dimensions...`;
                 }
             });
             
-            console.log('EDI to CommType mapping created, sample:', Object.entries(ediToCommType).slice(0, 5));
             
             // Step 2: Get the active TP IDs from billing data (we know these match the filtered TPR)
             // We need to use the same TP IDs that were used to filter the TPR
@@ -10523,7 +10277,6 @@ The data shows operational activity patterns across multiple dimensions...`;
                 return '<div style="color: #6b7280;">No active trading partner data available.</div>';
             }
             
-            console.log('Active TPs from billing:', activeTPs.size, 'Sample:', Array.from(activeTPs).slice(0, 5));
             
             // Step 3: Build a reverse mapping from billing TP IDs to comm types
             const tpToCommType = {};
@@ -10545,7 +10298,6 @@ The data shows operational activity patterns across multiple dimensions...`;
                         found = true;
                         debugMatches++;
                         if (debugMatches <= 3) {
-                            console.log('Matched billing TP to TPR:', tpId, '=>', commType);
                         }
                         break;
                     }
@@ -10553,13 +10305,10 @@ The data shows operational activity patterns across multiple dimensions...`;
                 if (!found) {
                     debugNoMatches++;
                     if (debugNoMatches <= 3) {
-                        console.log('No TPR match for billing TP:', tpId);
                     }
                 }
             });
             
-            console.log('TP to CommType mapping created:', Object.keys(tpToCommType).length, 'mappings');
-            console.log('Debug: Matched', debugMatches, 'Not matched', debugNoMatches);
             
             // Step 4: Sum up Doc and KC volumes by communication type
             const typeData = {};
@@ -10574,10 +10323,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                     const tpData = tpSummary.data || tpSummary; // Handle both structures
                     
                     if (Array.isArray(tpData)) {
-                        console.log('Processing ' + tpData.length + ' rows from period ' + period);
                         if (tpData.length > 0) {
-                            console.log('First row keys:', Object.keys(tpData[0]));
-                            console.log('First row sample:', tpData[0]);
                         }
                         let rowsWithTP = 0;
                         let rowsMatched = 0;
@@ -10589,7 +10335,6 @@ The data shows operational activity patterns across multiple dimensions...`;
                             if (['Trade_Partner', 'TP_ID', 'TP ID', 'TP-ID', 'Trading Partner'].includes(key.trim())) {
                                 tpId = String(row[key] || '').trim();
                                 if (rowsWithTP === 0) {
-                                    console.log('Found TP ID column:', key, 'Value:', tpId);
                                 }
                                 break;
                             }
@@ -10597,7 +10342,6 @@ The data shows operational activity patterns across multiple dimensions...`;
                         
                         if (!tpId) {
                             if (rowsWithTP === 0 && rowsMatched === 0) {
-                                console.log('No TP ID found in row. Available columns:', Object.keys(row));
                             }
                             return;
                         }
@@ -10647,11 +10391,6 @@ The data shows operational activity patterns across multiple dimensions...`;
                         const kcs = parseFloat(row['TOTAL-KCS'] || row['TOTAL_KCS'] || row['TOTAL-KC'] || row['TOTAL_KC'] || row['Total_KC'] || 0);
                         
                         if (rowsMatched === 1) {
-                            console.log('First matched row - checking volume columns:');
-                            console.log('  TOTAL-DOC:', row['TOTAL-DOC']);
-                            console.log('  TOTAL_DOC:', row['TOTAL_DOC']);
-                            console.log('  All columns in row:', Object.keys(row));
-                            console.log('  Extracted docs:', docs, 'kcs:', kcs);
                         }
                         
                         typeData[commType].docs += docs;
@@ -10661,13 +10400,10 @@ The data shows operational activity patterns across multiple dimensions...`;
                         totalDocs += docs;
                         totalKCs += kcs;
                     });
-                        console.log('Period ' + period + ': Found TPs in ' + rowsWithTP + ' rows, matched ' + rowsMatched);
                     }
                 }
             });
             
-            console.log('Volume data collected:', typeData);
-            console.log('Total Docs:', totalDocs, 'Total KCs:', totalKCs);
             
             // Sort by total volume (docs + kcs normalized)
             const sortedTypes = Object.entries(typeData)
@@ -10842,20 +10578,13 @@ The data shows operational activity patterns across multiple dimensions...`;
             // Sort the missing TPs
             const uniqueMissingTPs = missingTPs.sort();
             
-            console.log('Missing TP Detection:');
-            console.log('- Billing TPs found:', billingTPsMap.size);
-            console.log('- TPR TPs found:', tprTPIds.size);
-            console.log('- Missing TPs count:', uniqueMissingTPs.length);
-            console.log('- Missing TPs:', uniqueMissingTPs);
             
             // Debug: Show first 5 billing TPs and first 5 TPR TPs
             if (billingTPsMap.size > 0) {
                 const billingTPsSample = Array.from(billingTPsMap.entries()).slice(0, 5);
-                console.log('Sample billing TPs (uppercase, original):', billingTPsSample);
             }
             if (tprTPIds.size > 0) {
                 const tprTPsSample = Array.from(tprTPIds).slice(0, 5);
-                console.log('Sample TPR TPs (uppercase):', tprTPsSample);
             }
             
             if (uniqueMissingTPs.length > 0) {
@@ -10874,7 +10603,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 uniqueMissingTPs.forEach(tp => {
                     html += '<span style="background: white; border: 1px solid #fca5a5; ';
                     html += 'padding: 5px 12px; border-radius: 6px; font-size: 0.85em; ';
-                    html += 'color: #991b1b; font-weight: 500;">' + tp + '</span>';
+                    html += 'color: #991b1b; font-weight: 500;">' + escapeHtml(tp) + '</span>';
                 });
                 
                 html += '</div>';
@@ -10892,9 +10621,29 @@ The data shows operational activity patterns across multiple dimensions...`;
             }
         };
         
+        // Helper function to escape HTML special characters
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
         window.updateTPRTable = function(records) {
             const container = document.getElementById('tprTableContainer');
             if (!container) return;
+            
+            // Define escapeHtml inline for use in string concatenation
+            const escapeHtmlInline = function(text) {
+                if (!text) return '';
+                return String(text)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            };
+            const escapeHtml = escapeHtmlInline;
             
             const tprData = window.tprData;
             const mailboxColumn = tprData.mailboxTypeColumn;
@@ -10951,7 +10700,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             if (mailboxColumn) {
                 const uniquePaths = [...new Set(records.map(r => r[mailboxColumn]).filter(Boolean))].sort();
                 uniquePaths.forEach(path => {
-                    html += '<option value="' + path + '">' + path + '</option>';
+                    html += '<option value="' + escapeHtml(path) + '">' + escapeHtml(path) + '</option>';
                 });
             }
             
@@ -10973,7 +10722,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             if (partnerColumns.length > 0) {
                 partnerColumns.forEach(col => {
                     if (col !== ediAddressColumn && col !== partnerFacadeColumn && col !== displayNameColumn && col !== mailboxColumn) {
-                        html += '<th onclick="sortTable(&quot;' + tableId + '&quot;, this)" style="background: #f7fafc; border-bottom: 2px solid #cbd5e0;">' + col + '</th>';
+                        html += '<th onclick="sortTable(&quot;' + tableId + '&quot;, this)" style="background: #f7fafc; border-bottom: 2px solid #cbd5e0;">' + escapeHtml(col) + '</th>';
                     }
                 });
             }
@@ -10984,7 +10733,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             
             if (dateColumns.length > 0) {
                 dateColumns.forEach(col => {
-                    html += '<th onclick="sortTable(&quot;' + tableId + '&quot;, this)" style="text-align: right; background: #f7fafc; border-bottom: 2px solid #cbd5e0;">' + col + '</th>';
+                    html += '<th onclick="sortTable(&quot;' + tableId + '&quot;, this)" style="text-align: right; background: #f7fafc; border-bottom: 2px solid #cbd5e0;">' + escapeHtml(col) + '</th>';
                 });
                 html += '<th onclick="sortTable(&quot;' + tableId + '&quot;, this)" style="text-align: right; background: #f7fafc; border-bottom: 2px solid #cbd5e0;">Total</th>';
             }
@@ -11002,14 +10751,14 @@ The data shows operational activity patterns across multiple dimensions...`;
                 const ediAddress = ediAddressColumn ? (record[ediAddressColumn] || '') : '';
                 const commPath = mailboxColumn ? (record[mailboxColumn] || '') : '';
                 
-                html += '<tr data-tp-name="' + tpName + '" data-edi-address="' + ediAddress + '" data-comm-path="' + commPath + '" style="' + (index >= 20 ? 'display: none;' : '') + '">';
+                html += '<tr data-tp-name="' + escapeHtml(tpName) + '" data-edi-address="' + escapeHtml(ediAddress) + '" data-comm-path="' + escapeHtml(commPath) + '" style="' + (index >= 20 ? 'display: none;' : '') + '">';
                 
                 // Add TP Name as first column
-                html += '<td>' + tpName + '</td>';
+                html += '<td>' + escapeHtml(tpName) + '</td>';
                 
                 // Add EDI Address if column exists
                 if (ediAddressColumn) {
-                    html += '<td>' + ediAddress + '</td>';
+                    html += '<td>' + escapeHtml(ediAddress) + '</td>';
                 }
             
                 // Add other partner data (excluding columns we've already added)
@@ -11017,7 +10766,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                     partnerColumns.forEach(col => {
                         // Skip columns we're handling separately
                         if (col !== ediAddressColumn && col !== partnerFacadeColumn && col !== displayNameColumn && col !== mailboxColumn) {
-                            html += '<td>' + (record[col] || '') + '</td>';
+                            html += '<td>' + escapeHtml(record[col] || '') + '</td>';
                         }
                     });
                 }
@@ -11034,7 +10783,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                                      mailboxType.toLowerCase().includes('as2') ? '#6b21a8' :
                                      mailboxType.toLowerCase().includes('ftp') ? '#92400e' : '#374151';
                     
-                    html += '<td style="background-color: ' + bgColor + '; color: ' + textColor + '; font-weight: 500;">' + mailboxType + '</td>';
+                    html += '<td style="background-color: ' + bgColor + '; color: ' + textColor + '; font-weight: 500;">' + escapeHtml(mailboxType) + '</td>';
                 }
                 
                 // Add monthly values (only if there are date columns)
@@ -11150,16 +10899,15 @@ The data shows operational activity patterns across multiple dimensions...`;
                 const shouldFilter = checkbox ? checkbox.checked : hasActiveTPs;
                 updateTPRDisplay(shouldFilter);
             } else {
-                console.log('TPR data not found in embedded script');
             }
         }
         // Initialize immediately since data is embedded
         setTimeout(initTPRDisplay, 100);
-        </scr` + `ipt>`;
+        </scr${'ipt>'}`;
         
         // Moved the original script here
         html += `
-        <scr` + `ipt>
+        <scr${'ipt>'}
         let tprCurrentRows = 20;
         
         function filterTPRTable() {
@@ -11246,7 +10994,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             tprCurrentRows = totalRows;
             filterTPRTable();
         }
-        </scr` + `ipt>`;
+        </scr${'ipt>'}`;
         
         html += `</div>`;
         
@@ -11269,7 +11017,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 };
             });
             
-            const chartDataJson = JSON.stringify({
+            const chartDataJson = this.safeStringify({
                 labels: dateColumns,
                 datasets: chartDatasets
             });
@@ -11280,7 +11028,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 <canvas id="tprTrendsChart" width="800" height="400" style="max-width: 100%;"></canvas>
             </div>
             
-            <scr` + `ipt>
+            <scr${'ipt>'}
             setTimeout(() => {
                 const ctx = document.getElementById('tprTrendsChart');
                 if (ctx) {
@@ -11314,7 +11062,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                     });
                 }
             }, 100);
-            </scr` + `ipt>`;
+            </scr${'ipt>'}`;
         }
         
         html += `</div>`;
@@ -11322,822 +11070,9 @@ The data shows operational activity patterns across multiple dimensions...`;
     }
     
     generateMapAnalysis(data) {
-        // Check if Map data is available
-        if (!window.mapData || !window.mapData.analysis) {
-            return null; // Return null if no Map data, so the tab won't be shown
-        }
-        
-        const mapAnalysis = window.mapData.analysis;
-        const summary = mapAnalysis.summary;
-        
-        let html = `<div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 100%; overflow-x: hidden;">
-            <h3 style="margin-top: 0; color: #1a365d; margin-bottom: 30px;">🗺️ Map Analysis
-                <span class="info-icon">i
-                    <div class="tooltip">
-                        Map Analysis shows the usage patterns of integration maps across trading partners.
-                        It helps identify reusable maps, consolidation opportunities, and partner-specific customizations.
-                        Use this to optimize map maintenance and streamline partner onboarding.
-                    </div>
-                </span>
-            </h3>`;
-        
-        // Add filter checkbox for active TPs
-        const activeTPs = this.getActiveTPsFromData(data);
-        const hasActiveTPs = activeTPs && activeTPs.size > 0;
-        
-        if (hasActiveTPs) {
-            html += `
-            <div style="background: #f0f9ff; border: 1px solid #0ea5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="checkbox" id="filterMapActiveTPsToggle" checked onchange="toggleMapActiveTPFilter()" style="width: 20px; height: 20px; cursor: pointer;">
-                        <label for="filterMapActiveTPsToggle" style="cursor: pointer; font-weight: 500; color: #0369a1;">
-                            🎯 Show only Trading Partners with billing activity
-                        </label>
-                    </div>
-                    <div id="mapFilterStatus" style="font-size: 0.9em; color: #64748b;"></div>
-                </div>
-            </div>`;
-        }
-        
-        
-        html += `
-            <div id="mapAnalysisContent">`;
-        
-        // Summary section
-        html += `
-        <div class="info-box" style="margin-bottom: 30px;" id="mapSummarySection">
-            <h4 style="margin-top: 0; color: #2d3748;">📊 Map Usage Summary</h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                <div style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); padding: 20px; border-radius: 10px; border: 1px solid #0ea5e9;">
-                    <div style="font-size: 0.9em; color: #0c4a6e; margin-bottom: 5px;">Total Maps</div>
-                    <div style="font-size: 2em; font-weight: bold; color: #0369a1;">${summary.totalMaps}</div>
-                </div>
-                <div style="background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); padding: 20px; border-radius: 10px; border: 1px solid #c084fc;">
-                    <div style="font-size: 0.9em; color: #581c87; margin-bottom: 5px;">Trading Partners</div>
-                    <div style="font-size: 2em; font-weight: bold; color: #7c3aed;">${summary.totalTPs}</div>
-                </div>
-                <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 10px; border: 1px solid #fbbf24;">
-                    <div style="font-size: 0.9em; color: #78350f; margin-bottom: 5px;">Document Types</div>
-                    <div style="font-size: 2em; font-weight: bold; color: #d97706;">${summary.totalDocTypes}</div>
-                </div>
-                <div style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); padding: 20px; border-radius: 10px; border: 1px solid #86efac;">
-                    <div style="font-size: 0.9em; color: #14532d; margin-bottom: 5px;">Total Transactions</div>
-                    <div style="font-size: 2em; font-weight: bold; color: #16a34a;">${summary.totalTransactions.toLocaleString()}</div>
-                </div>
-            </div>
-        </div>`;
-        
-        // All Maps Table with Filtering
-        html += `
-        <div style="margin-bottom: 40px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h4 style="color: #2d3748; margin: 0;">📊 All Maps</h4>
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="exportAllMapsToJSON()" style="padding: 8px 16px; background: #4299e1; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                        📥 Export JSON
-                    </button>
-                    <button onclick="exportAllMapsToCSV()" style="padding: 8px 16px; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                        📥 Export CSV
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Filters for All Maps -->
-            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <div>
-                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Map Name</label>
-                        <input type="text" id="allMapsFilterMapName" onkeyup="filterAllMapsTable()" 
-                               style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;"
-                               placeholder="Filter by map name...">
-                    </div>
-                    <div>
-                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Document Type</label>
-                        <input type="text" id="allMapsFilterDocType" onkeyup="filterAllMapsTable()"
-                               style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;"
-                               placeholder="Filter by document type...">
-                    </div>
-                    <div>
-                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Direction</label>
-                        <select id="allMapsFilterDirection" onchange="filterAllMapsTable()"
-                                style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;">
-                            <option value="">All Directions</option>
-                            <option value="inbound">Inbound</option>
-                            <option value="outbound">Outbound</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            
-            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
-                <table id="allMapsTable" style="width: 100%; border-collapse: collapse;">
-                    <thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10;">
-                        <tr>
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allMapsTable'), 0)">
-                                Map Name <span class="sort-indicator">↕</span>
-                            </th>
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allMapsTable'), 1)">
-                                Document Type <span class="sort-indicator">↕</span>
-                            </th>
-                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allMapsTable'), 2)">
-                                TP Count <span class="sort-indicator">↕</span>
-                            </th>
-                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allMapsTable'), 3)">
-                                Direction <span class="sort-indicator">↕</span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-        
-        // Generate all maps rows
-        Object.entries(mapAnalysis.maps).forEach(([mapName, mapData], index) => {
-            const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
-            const direction = mapData.directions.inbound > mapData.directions.outbound ? 'Inbound' : 'Outbound';
-            const directionBadge = mapData.directions.inbound > mapData.directions.outbound 
-                ? '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↓ Inbound</span>'
-                : '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↑ Outbound</span>';
-            
-            html += `
-            <tr style="background: ${rowBg}; border-bottom: 1px solid #e5e7eb;" data-direction="${direction.toLowerCase()}">
-                <td style="padding: 10px; font-weight: 500;">${mapName}</td>
-                <td style="padding: 10px;">${mapData.docType}</td>
-                <td style="padding: 10px; text-align: center;">
-                    <span style="background: #e0e7ff; color: #4c1d95; padding: 4px 8px; border-radius: 4px; font-weight: 600;">
-                        ${mapData.tps.length}
-                    </span>
-                </td>
-                <td style="padding: 10px; text-align: center;">${directionBadge}</td>
-            </tr>`;
-        });
-        
-        html += `
-                    </tbody>
-                </table>
-            </div>
-        </div>`;
-        
-        // All Trading Partners Table with Filtering
-        html += `
-        <div style="margin-bottom: 40px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h4 style="color: #2d3748; margin: 0;">🤝 All Trading Partners</h4>
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="exportAllTPsToJSON()" style="padding: 8px 16px; background: #4299e1; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                        📥 Export JSON
-                    </button>
-                    <button onclick="exportAllTPsToCSV()" style="padding: 8px 16px; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                        📥 Export CSV
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Filters for All TPs -->
-            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <div>
-                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">TP ID</label>
-                        <input type="text" id="allTPsFilterTPId" onkeyup="filterAllTPsTable()" 
-                               style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;"
-                               placeholder="Filter by TP ID...">
-                    </div>
-                    <div>
-                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Map Name</label>
-                        <input type="text" id="allTPsFilterMapName" onkeyup="filterAllTPsTable()"
-                               style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;"
-                               placeholder="Filter by map name...">
-                    </div>
-                    <div>
-                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Document Type</label>
-                        <input type="text" id="allTPsFilterDocType" onkeyup="filterAllTPsTable()"
-                               style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;"
-                               placeholder="Filter by document type...">
-                    </div>
-                    <div>
-                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Direction</label>
-                        <select id="allTPsFilterDirection" onchange="filterAllTPsTable()"
-                                style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;">
-                            <option value="">All Directions</option>
-                            <option value="inbound">Inbound</option>
-                            <option value="outbound">Outbound</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            
-            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
-                <table id="allTPsTable" style="width: 100%; border-collapse: collapse;">
-                    <thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10;">
-                        <tr>
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allTPsTable'), 0)">
-                                TP ID <span class="sort-indicator">↕</span>
-                            </th>
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allTPsTable'), 1)">
-                                Map Name <span class="sort-indicator">↕</span>
-                            </th>
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allTPsTable'), 2)">
-                                Document Type <span class="sort-indicator">↕</span>
-                            </th>
-                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allTPsTable'), 3)">
-                                Direction <span class="sort-indicator">↕</span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-        
-        // Generate all TP-Map combinations
-        let tpMapRows = [];
-        Object.entries(mapAnalysis.tpUsage).forEach(([tpId, tpData]) => {
-            tpData.maps.forEach(mapName => {
-                const mapData = mapAnalysis.maps[mapName];
-                if (mapData) {
-                    // Determine direction for this specific TP-Map combination
-                    const direction = mapData.directions.inbound > mapData.directions.outbound ? 'Inbound' : 'Outbound';
-                    tpMapRows.push({
-                        tpId,
-                        mapName,
-                        docType: mapData.docType,
-                        direction
-                    });
-                }
-            });
-        });
-        
-        // Sort by TP ID then by Map Name
-        tpMapRows.sort((a, b) => {
-            if (a.tpId !== b.tpId) return a.tpId.localeCompare(b.tpId);
-            return a.mapName.localeCompare(b.mapName);
-        });
-        
-        tpMapRows.forEach(({tpId, mapName, docType, direction}, index) => {
-            const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
-            const directionBadge = direction === 'Inbound'
-                ? '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↓ Inbound</span>'
-                : '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↑ Outbound</span>';
-            
-            html += `
-            <tr style="background: ${rowBg}; border-bottom: 1px solid #e5e7eb;" data-direction="${direction.toLowerCase()}">
-                <td style="padding: 10px; font-weight: 500;">${tpId}</td>
-                <td style="padding: 10px;">${mapName}</td>
-                <td style="padding: 10px;">${docType}</td>
-                <td style="padding: 10px; text-align: center;">${directionBadge}</td>
-            </tr>`;
-        });
-        
-        html += `
-                    </tbody>
-                </table>
-            </div>
-        </div>`;
-        
-        html += `</div>`; // Close mapAnalysisContent div
-        html += `</div>`; // Close main container div
-        
-        // Add the script for filtering and weight analysis
-        html += `
-        <script>
-            // Store the original map data and active TPs
-            window.mapOriginalData = ${JSON.stringify(window.mapData.raw)};
-            window.mapActiveTPs = ${activeTPs ? `new Set(${JSON.stringify(Array.from(activeTPs))})` : 'null'};
-            window.analyzerData = ${data ? JSON.stringify(data) : 'null'};
-            
-            // Inline version of processMapData function
-            function processMapDataInline(data) {
-                const analysis = {
-                    maps: {},           // Map name -> details
-                    tpUsage: {},        // TP ID -> maps they use
-                    docTypes: {},       // Document type -> maps
-                    summary: {
-                        totalMaps: 0,
-                        totalTPs: new Set(),
-                        totalDocTypes: new Set(),
-                        totalTransactions: data.length
-                    }
-                };
-                
-                // Process each transaction
-                data.forEach(row => {
-                        const mapName = row['Map Name'];
-                        const docType = row['Document Type'];
-                        const direction = row['Direction'];
-                        const senderId = row['Sender ID'];
-                        const receiverId = row['Receiver ID'];
-                        
-                        // Determine TP ID based on direction
-                        const tpId = direction === 'Outbound' ? receiverId : senderId;
-                        
-                        // Initialize map entry if not exists
-                        if (!analysis.maps[mapName]) {
-                            analysis.maps[mapName] = {
-                                docType: docType,
-                                tps: new Set(),
-                                directions: { inbound: 0, outbound: 0 },
-                                transactions: 0
-                            };
-                        }
-                        
-                        // Update map data
-                        analysis.maps[mapName].tps.add(tpId);
-                        analysis.maps[mapName].directions[direction.toLowerCase()]++;
-                        analysis.maps[mapName].transactions++;
-                        
-                        // Initialize TP usage if not exists
-                        if (!analysis.tpUsage[tpId]) {
-                            analysis.tpUsage[tpId] = {
-                                maps: new Set(),
-                                docTypes: new Set(),
-                                transactions: 0
-                            };
-                        }
-                        
-                        // Update TP usage
-                        analysis.tpUsage[tpId].maps.add(mapName);
-                        analysis.tpUsage[tpId].docTypes.add(docType);
-                        analysis.tpUsage[tpId].transactions++;
-                        
-                        // Initialize doc type entry if not exists
-                        if (!analysis.docTypes[docType]) {
-                            analysis.docTypes[docType] = {
-                                maps: new Set(),
-                                tps: new Set(),
-                                transactions: 0
-                            };
-                        }
-                        
-                        // Update doc type data
-                        analysis.docTypes[docType].maps.add(mapName);
-                        analysis.docTypes[docType].tps.add(tpId);
-                        analysis.docTypes[docType].transactions++;
-                        
-                        // Update summary
-                        analysis.summary.totalTPs.add(tpId);
-                        analysis.summary.totalDocTypes.add(docType);
-                    });
-                    
-                    // Convert Sets to counts for summary
-                    analysis.summary.totalMaps = Object.keys(analysis.maps).length;
-                    analysis.summary.totalTPs = analysis.summary.totalTPs.size;
-                    analysis.summary.totalDocTypes = analysis.summary.totalDocTypes.size;
-                    
-                    // Convert Sets to arrays for easier handling
-                    Object.values(analysis.maps).forEach(map => {
-                        map.tps = Array.from(map.tps);
-                    });
-                    
-                    Object.values(analysis.tpUsage).forEach(tp => {
-                        tp.maps = Array.from(tp.maps);
-                        tp.docTypes = Array.from(tp.docTypes);
-                    });
-                    
-                    Object.values(analysis.docTypes).forEach(doc => {
-                        doc.maps = Array.from(doc.maps);
-                        doc.tps = Array.from(doc.tps);
-                    });
-                    
-                    return analysis;
-            }
-            
-            window.toggleMapActiveTPFilter = function() {
-                const checkbox = document.getElementById('filterMapActiveTPsToggle');
-                const isFiltered = checkbox ? checkbox.checked : false;
-                updateMapAnalysisDisplay(isFiltered);
-            }
-            
-            // Filter function for All Maps table
-            window.filterAllMapsTable = function() {
-                const mapNameFilter = document.getElementById('allMapsFilterMapName').value.toLowerCase();
-                const docTypeFilter = document.getElementById('allMapsFilterDocType').value.toLowerCase();
-                const directionFilter = document.getElementById('allMapsFilterDirection').value.toLowerCase();
-                
-                const table = document.getElementById('allMapsTable');
-                const tbody = table.querySelector('tbody');
-                const rows = tbody.querySelectorAll('tr');
-                
-                rows.forEach(row => {
-                    const mapName = row.cells[0].textContent.toLowerCase();
-                    const docType = row.cells[1].textContent.toLowerCase();
-                    const direction = row.getAttribute('data-direction');
-                    
-                    const mapNameMatch = mapName.includes(mapNameFilter);
-                    const docTypeMatch = docType.includes(docTypeFilter);
-                    const directionMatch = !directionFilter || direction === directionFilter;
-                    
-                    if (mapNameMatch && docTypeMatch && directionMatch) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            }
-            
-            // Filter function for All TPs table
-            window.filterAllTPsTable = function() {
-                const tpIdFilter = document.getElementById('allTPsFilterTPId').value.toLowerCase();
-                const mapNameFilter = document.getElementById('allTPsFilterMapName').value.toLowerCase();
-                const docTypeFilter = document.getElementById('allTPsFilterDocType').value.toLowerCase();
-                const directionFilter = document.getElementById('allTPsFilterDirection').value.toLowerCase();
-                
-                const table = document.getElementById('allTPsTable');
-                const tbody = table.querySelector('tbody');
-                const rows = tbody.querySelectorAll('tr');
-                
-                rows.forEach(row => {
-                    const tpId = row.cells[0].textContent.toLowerCase();
-                    const mapName = row.cells[1].textContent.toLowerCase();
-                    const docType = row.cells[2].textContent.toLowerCase();
-                    const direction = row.getAttribute('data-direction');
-                    
-                    const tpIdMatch = tpId.includes(tpIdFilter);
-                    const mapNameMatch = mapName.includes(mapNameFilter);
-                    const docTypeMatch = docType.includes(docTypeFilter);
-                    const directionMatch = !directionFilter || direction === directionFilter;
-                    
-                    if (tpIdMatch && mapNameMatch && docTypeMatch && directionMatch) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            }
-            
-            function updateMapAnalysisDisplay(isFiltered) {
-                const filterStatus = document.getElementById('mapFilterStatus');
-                const contentDiv = document.getElementById('mapAnalysisContent');
-                
-                let filteredData = window.mapOriginalData;
-                
-                if (isFiltered && window.mapActiveTPs && window.mapActiveTPs.size > 0) {
-                    // Filter the map data to only include active TPs
-                    filteredData = window.mapOriginalData.filter(row => {
-                        // Check both Sender ID and Receiver ID
-                        const senderId = (row['Sender ID'] || '').toString().trim();
-                        const receiverId = (row['Receiver ID'] || '').toString().trim();
-                        
-                        // Check if either sender or receiver is in active TPs
-                        return checkTPMatch(senderId) || checkTPMatch(receiverId);
-                    });
-                    
-                    filterStatus.innerHTML = '✓ Filter active: Showing <strong>' + filteredData.length + '</strong> map transactions with billing activity (from ' + window.mapOriginalData.length + ' total)';
-                } else {
-                    filterStatus.innerHTML = '○ Filter inactive: Showing all <strong>' + window.mapOriginalData.length + '</strong> map transactions';
-                }
-                
-                // Re-process and render the filtered data
-                const mapAnalysis = processMapDataInline(filteredData);
-                renderMapAnalysisContent(mapAnalysis);
-            }
-            
-            function checkTPMatch(tpId) {
-                    if (!tpId || !window.mapActiveTPs) return false;
-                    
-                    // Clean and check variations
-                    const baseId = tpId.replace(/^:/, '').trim();
-                    const variations = [
-                        tpId,
-                        baseId,
-                        baseId.replace(/^14:/, '').trim(),
-                        baseId.replace(/^12:/, '').trim(),
-                        baseId.split('/')[0].trim(),
-                        baseId.toUpperCase(),
-                        baseId.toLowerCase(),
-                        ':' + baseId,
-                        ':' + baseId.toUpperCase(),
-                        ':' + baseId.toLowerCase()
-                    ];
-                    
-                    return variations.some(v => window.mapActiveTPs.has(v));
-            }
-            
-            function renderMapAnalysisContent(mapAnalysis) {
-                    const summary = mapAnalysis.summary;
-                    
-                    // Generate the complete content HTML
-                    let html = '';
-                    
-                    // Summary section
-                    html += '<div class="info-box" style="margin-bottom: 30px;" id="mapSummarySection">';
-                    html += '<h4 style="margin-top: 0; color: #2d3748;">📊 Map Usage Summary</h4>';
-                    html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">';
-                    html += '<div style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); padding: 20px; border-radius: 10px; border: 1px solid #0ea5e9;">';
-                    html += '<div style="font-size: 0.9em; color: #0c4a6e; margin-bottom: 5px;">Total Maps</div>';
-                    html += '<div style="font-size: 2em; font-weight: bold; color: #0369a1;">' + summary.totalMaps + '</div>';
-                    html += '</div>';
-                    html += '<div style="background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); padding: 20px; border-radius: 10px; border: 1px solid #c084fc;">';
-                    html += '<div style="font-size: 0.9em; color: #581c87; margin-bottom: 5px;">Trading Partners</div>';
-                    html += '<div style="font-size: 2em; font-weight: bold; color: #7c3aed;">' + summary.totalTPs + '</div>';
-                    html += '</div>';
-                    html += '<div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 10px; border: 1px solid #fbbf24;">';
-                    html += '<div style="font-size: 0.9em; color: #78350f; margin-bottom: 5px;">Document Types</div>';
-                    html += '<div style="font-size: 2em; font-weight: bold; color: #d97706;">' + summary.totalDocTypes + '</div>';
-                    html += '</div>';
-                    html += '<div style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); padding: 20px; border-radius: 10px; border: 1px solid #86efac;">';
-                    html += '<div style="font-size: 0.9em; color: #14532d; margin-bottom: 5px;">Total Transactions</div>';
-                    html += '<div style="font-size: 2em; font-weight: bold; color: #16a34a;">' + summary.totalTransactions.toLocaleString() + '</div>';
-                    html += '</div>';
-                    html += '</div>';
-                    html += '</div>';
-                    
-                    // Generate new table structure matching the main generateMapAnalysis function
-                    // All Maps Table
-                    html += '<div style="margin-bottom: 40px;">';
-                    html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">';
-                    html += '<h4 style="color: #2d3748; margin: 0;">📊 All Maps</h4>';
-                    html += '<div style="display: flex; gap: 10px;">';
-                    html += '<button onclick="exportAllMapsToJSON()" style="padding: 8px 16px; background: #4299e1; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">📥 Export JSON</button>';
-                    html += '<button onclick="exportAllMapsToCSV()" style="padding: 8px 16px; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">📥 Export CSV</button>';
-                    html += '</div>';
-                    html += '</div>';
-                    
-                    // Filters for All Maps
-                    html += '<div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">';
-                    html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
-                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Map Name</label>';
-                    html += '<input type="text" id="allMapsFilterMapName" onkeyup="filterAllMapsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;" placeholder="Filter by map name..."></div>';
-                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Document Type</label>';
-                    html += '<input type="text" id="allMapsFilterDocType" onkeyup="filterAllMapsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;" placeholder="Filter by document type..."></div>';
-                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Direction</label>';
-                    html += '<select id="allMapsFilterDirection" onchange="filterAllMapsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;">';
-                    html += '<option value="">All Directions</option><option value="inbound">Inbound</option><option value="outbound">Outbound</option></select></div>';
-                    html += '</div></div>';
-                    
-                    html += '<div style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">';
-                    html += '<table id="allMapsTable" style="width: 100%; border-collapse: collapse;">';
-                    html += '<thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10;"><tr>';
-                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 0)">Map Name <span class="sort-indicator">↕</span></th>';
-                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 1)">Document Type <span class="sort-indicator">↕</span></th>';
-                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 2)">TP Count <span class="sort-indicator">↕</span></th>';
-                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 3)">Direction <span class="sort-indicator">↕</span></th>';
-                    html += '</tr></thead><tbody>';
-                    
-                    // Generate all maps rows
-                    Object.entries(mapAnalysis.maps).forEach(([mapName, mapData], index) => {
-                        const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
-                        const direction = mapData.directions.inbound > mapData.directions.outbound ? 'Inbound' : 'Outbound';
-                        const directionBadge = mapData.directions.inbound > mapData.directions.outbound 
-                            ? '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↓ Inbound</span>'
-                            : '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↑ Outbound</span>';
-                        
-                        html += '<tr style="background: ' + rowBg + '; border-bottom: 1px solid #e5e7eb;" data-direction="' + direction.toLowerCase() + '">';
-                        html += '<td style="padding: 10px; font-weight: 500;">' + mapName + '</td>';
-                        html += '<td style="padding: 10px;">' + mapData.docType + '</td>';
-                        html += '<td style="padding: 10px; text-align: center;"><span style="background: #e0e7ff; color: #4c1d95; padding: 4px 8px; border-radius: 4px; font-weight: 600;">' + mapData.tps.length + '</span></td>';
-                        html += '<td style="padding: 10px; text-align: center;">' + directionBadge + '</td>';
-                        html += '</tr>';
-                    });
-                    
-                    html += '</tbody></table></div></div>';
-                    
-                    // All Trading Partners Table
-                    html += '<div style="margin-bottom: 40px;">';
-                    html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">';
-                    html += '<h4 style="color: #2d3748; margin: 0;">🤝 All Trading Partners</h4>';
-                    html += '<div style="display: flex; gap: 10px;">';
-                    html += '<button onclick="exportAllTPsToJSON()" style="padding: 8px 16px; background: #4299e1; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">📥 Export JSON</button>';
-                    html += '<button onclick="exportAllTPsToCSV()" style="padding: 8px 16px; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">📥 Export CSV</button>';
-                    html += '</div>';
-                    html += '</div>';
-                    
-                    // Filters for All TPs
-                    html += '<div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">';
-                    html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
-                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">TP ID</label>';
-                    html += '<input type="text" id="allTPsFilterTPId" onkeyup="filterAllTPsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;" placeholder="Filter by TP ID..."></div>';
-                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Map Name</label>';
-                    html += '<input type="text" id="allTPsFilterMapName" onkeyup="filterAllTPsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;" placeholder="Filter by map name..."></div>';
-                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Document Type</label>';
-                    html += '<input type="text" id="allTPsFilterDocType" onkeyup="filterAllTPsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;" placeholder="Filter by document type..."></div>';
-                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Direction</label>';
-                    html += '<select id="allTPsFilterDirection" onchange="filterAllTPsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;">';
-                    html += '<option value="">All Directions</option><option value="inbound">Inbound</option><option value="outbound">Outbound</option></select></div>';
-                    html += '</div></div>';
-                    
-                    html += '<div style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">';
-                    html += '<table id="allTPsTable" style="width: 100%; border-collapse: collapse;">';
-                    html += '<thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10;"><tr>';
-                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 0)">TP ID <span class="sort-indicator">↕</span></th>';
-                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 1)">Map Name <span class="sort-indicator">↕</span></th>';
-                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 2)">Document Type <span class="sort-indicator">↕</span></th>';
-                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 3)">Direction <span class="sort-indicator">↕</span></th>';
-                    html += '</tr></thead><tbody>';
-                    
-                    // Generate all TP-Map combinations
-                    let tpMapRows = [];
-                    Object.entries(mapAnalysis.tpUsage).forEach(([tpId, tpData]) => {
-                        tpData.maps.forEach(mapName => {
-                            const mapData = mapAnalysis.maps[mapName];
-                            if (mapData) {
-                                const direction = mapData.directions.inbound > mapData.directions.outbound ? 'Inbound' : 'Outbound';
-                                tpMapRows.push({ tpId, mapName, docType: mapData.docType, direction });
-                            }
-                        });
-                    });
-                    
-                    // Sort by TP ID then by Map Name
-                    tpMapRows.sort((a, b) => {
-                        if (a.tpId !== b.tpId) return a.tpId.localeCompare(b.tpId);
-                        return a.mapName.localeCompare(b.mapName);
-                    });
-                    
-                    tpMapRows.forEach(({tpId, mapName, docType, direction}, index) => {
-                        const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
-                        const directionBadge = direction === 'Inbound'
-                            ? '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↓ Inbound</span>'
-                            : '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↑ Outbound</span>';
-                        
-                        html += '<tr style="background: ' + rowBg + '; border-bottom: 1px solid #e5e7eb;" data-direction="' + direction.toLowerCase() + '">';
-                        html += '<td style="padding: 10px; font-weight: 500;">' + tpId + '</td>';
-                        html += '<td style="padding: 10px;">' + mapName + '</td>';
-                        html += '<td style="padding: 10px;">' + docType + '</td>';
-                        html += '<td style="padding: 10px; text-align: center;">' + directionBadge + '</td>';
-                        html += '</tr>';
-                    });
-                    
-                    html += '</tbody></table></div></div>';
-                    
-                    // Update the content div
-                    const contentDiv = document.getElementById('mapAnalysisContent');
-                    if (contentDiv) {
-                        contentDiv.innerHTML = html;
-                    }
-                    
-            }
-            
-            // Export functions for All Maps table
-            window.exportAllMapsToJSON = function() {
-                const table = document.getElementById('allMapsTable');
-                const tbody = table.querySelector('tbody');
-                const rows = tbody.querySelectorAll('tr');
-                const data = [];
-                
-                rows.forEach(row => {
-                    if (row.style.display !== 'none') {
-                        data.push({
-                            'Map Name': row.cells[0].textContent.trim(),
-                            'Document Type': row.cells[1].textContent.trim(),
-                            'TP Count': parseInt(row.cells[2].textContent.trim()),
-                            'Direction': row.cells[3].textContent.trim().replace(/[↓↑]/g, '').trim()
-                        });
-                    }
-                });
-                
-                const json = JSON.stringify(data, null, 2);
-                const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'all_maps_export.json';
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-            
-            window.exportAllMapsToCSV = function() {
-                const table = document.getElementById('allMapsTable');
-                const tbody = table.querySelector('tbody');
-                const rows = tbody.querySelectorAll('tr');
-                
-                let csv = 'Map Name,Document Type,TP Count,Direction\n';
-                rows.forEach(row => {
-                    if (row.style.display !== 'none') {
-                        const mapName = row.cells[0].textContent.trim();
-                        const docType = row.cells[1].textContent.trim();
-                        const tpCount = row.cells[2].textContent.trim();
-                        const direction = row.cells[3].textContent.trim().replace(/[↓↑]/g, '').trim();
-                        csv += '"' + mapName + '","' + docType + '","' + tpCount + '","' + direction + '"\n';
-                    }
-                });
-                
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'all_maps_export.csv';
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-            
-            // Export functions for All Trading Partners table
-            window.exportAllTPsToJSON = function() {
-                const table = document.getElementById('allTPsTable');
-                const tbody = table.querySelector('tbody');
-                const rows = tbody.querySelectorAll('tr');
-                const data = [];
-                
-                rows.forEach(row => {
-                    if (row.style.display !== 'none') {
-                        data.push({
-                            'TP ID': row.cells[0].textContent.trim(),
-                            'Map Name': row.cells[1].textContent.trim(),
-                            'Document Type': row.cells[2].textContent.trim(),
-                            'Direction': row.cells[3].textContent.trim().replace(/[↓↑]/g, '').trim()
-                        });
-                    }
-                });
-                
-                const json = JSON.stringify(data, null, 2);
-                const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'all_trading_partners_export.json';
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-            
-            window.exportAllTPsToCSV = function() {
-                const table = document.getElementById('allTPsTable');
-                const tbody = table.querySelector('tbody');
-                const rows = tbody.querySelectorAll('tr');
-                
-                let csv = 'TP ID,Map Name,Document Type,Direction\n';
-                rows.forEach(row => {
-                    if (row.style.display !== 'none') {
-                        const tpId = row.cells[0].textContent.trim();
-                        const mapName = row.cells[1].textContent.trim();
-                        const docType = row.cells[2].textContent.trim();
-                        const direction = row.cells[3].textContent.trim().replace(/[↓↑]/g, '').trim();
-                        csv += '"' + tpId + '","' + mapName + '","' + docType + '","' + direction + '"\n';
-                    }
-                });
-                
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'all_trading_partners_export.csv';
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-            
-            // Add filter functions for tables
-            window.filterAllMapsTable = function() {
-                const mapNameFilter = document.getElementById('allMapsFilterMapName').value.toLowerCase();
-                const docTypeFilter = document.getElementById('allMapsFilterDocType').value.toLowerCase();
-                const directionFilter = document.getElementById('allMapsFilterDirection').value.toLowerCase();
-                
-                const table = document.getElementById('allMapsTable');
-                const tbody = table.querySelector('tbody');
-                const rows = tbody.querySelectorAll('tr');
-                
-                rows.forEach(row => {
-                    const mapName = row.cells[0].textContent.toLowerCase();
-                    const docType = row.cells[1].textContent.toLowerCase();
-                    const direction = row.getAttribute('data-direction');
-                    
-                    const mapNameMatch = mapName.includes(mapNameFilter);
-                    const docTypeMatch = docType.includes(docTypeFilter);
-                    const directionMatch = !directionFilter || direction === directionFilter;
-                    
-                    if (mapNameMatch && docTypeMatch && directionMatch) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            }
-            
-            window.filterAllTPsTable = function() {
-                const tpIdFilter = document.getElementById('allTPsFilterTPId').value.toLowerCase();
-                const mapNameFilter = document.getElementById('allTPsFilterMapName').value.toLowerCase();
-                const docTypeFilter = document.getElementById('allTPsFilterDocType').value.toLowerCase();
-                const directionFilter = document.getElementById('allTPsFilterDirection').value.toLowerCase();
-                
-                const table = document.getElementById('allTPsTable');
-                const tbody = table.querySelector('tbody');
-                const rows = tbody.querySelectorAll('tr');
-                
-                rows.forEach(row => {
-                    const tpId = row.cells[0].textContent.toLowerCase();
-                    const mapName = row.cells[1].textContent.toLowerCase();
-                    const docType = row.cells[2].textContent.toLowerCase();
-                    const direction = row.getAttribute('data-direction');
-                    
-                    const tpIdMatch = tpId.includes(tpIdFilter);
-                    const mapNameMatch = mapName.includes(mapNameFilter);
-                    const docTypeMatch = docType.includes(docTypeFilter);
-                    const directionMatch = !directionFilter || direction === directionFilter;
-                    
-                    if (tpIdMatch && mapNameMatch && docTypeMatch && directionMatch) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            }
-            
-            // Initialize display - trigger with checkbox checked by default
-            setTimeout(function() { 
-                    const checkbox = document.getElementById('filterMapActiveTPsToggle');
-                    if (checkbox) {
-                        updateMapAnalysisDisplay(checkbox.checked);
-                    } else {
-                        updateMapAnalysisDisplay(false);
-                    }
-                }, 100);
-            </scr` + `ipt>`;
-        
-        return html;
+        // Map Analysis feature has been removed
+        return null;
     }
-    
     formatAIInsights(insights) {
         // Convert markdown-style formatting to HTML
         let formatted = insights
@@ -14466,10 +13401,10 @@ The data shows operational activity patterns across multiple dimensions...`;
         </div>`;
         
         // Add script for the pie chart
-        html += `<scr` + `ipt>
+        html += `<scr${'ipt>'}
         // Store partner concentration data globally
         window.partnerConcentrationData = {
-            sortedTPData: ${JSON.stringify(sortedTPs.slice(0, 5).map(([id, tp]) => ({
+            sortedTPData: ${this.safeStringify(sortedTPs.slice(0, 5).map(([id, tp]) => ({
                 id: id,
                 docs: tp.total_docs
             })))},
@@ -14607,7 +13542,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 });
             }
         }, 100);
-        </scr` + `ipt>`;
+        </scr${'ipt>'}`;
         
         return html;
     }
@@ -14787,15 +13722,14 @@ The data shows operational activity patterns across multiple dimensions...`;
                 </div>`;
         
         // Store the data for dynamic updates
-        html += '<scr' + 'ipt>' + `
+        html += `<scr${'ipt>'}` + `
             try {
-                window.tpSeasonalityData = ${JSON.stringify(allPartners.map(([tpId, tpInfo]) => ({
+                window.tpSeasonalityData = ${this.safeStringify(allPartners.map(([tpId, tpInfo]) => ({
                     tpId,
                     periods: tpInfo.periods,
                     doc_values: tpInfo.doc_values
                 }))).replace(/</g, '\\u003c')};
             } catch(e) {
-                console.error('Error parsing TP seasonality data:', e);
                 window.tpSeasonalityData = [];
             }
             
@@ -14976,7 +13910,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             
             // Generate initial table
             generateTPSeasonalityTable();
-        ` + '</scr' + 'ipt>';
+        ` + `</scr${'ipt>'}`;
         
         html += `
                 <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -15037,7 +13971,7 @@ The data shows operational activity patterns across multiple dimensions...`;
         
         // Add export functionality
         html += `
-        <script>
+        <scr${'ipt>'}
         window.exportPartnerSeasonality = function(format) {
             // Find the seasonality table by ID
             const seasonalityTable = document.getElementById('tp-seasonality-table');
@@ -15109,7 +14043,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             a.click();
             URL.revokeObjectURL(url);
         };
-        </scr` + `ipt>`;
+        </scr${'ipt>'}`;
         
         return html;
     }
@@ -15714,7 +14648,7 @@ The data shows operational activity patterns across multiple dimensions...`;
         // Format period labels
         const periodLabels = docAnalysis.periods.map(p => this.formatPeriodDisplay(p));
         
-        const chartScript = `<scr` + `ipt>`+`
+        const chartScript = `<scr${'ipt>'}`+`
             setTimeout(() => {
                 try {
                     const ctx = document.getElementById('docKCTrendsChart');
@@ -15722,11 +14656,11 @@ The data shows operational activity patterns across multiple dimensions...`;
                         new Chart(ctx.getContext('2d'), {
                             type: 'line',
                             data: {
-                                labels: ` + JSON.stringify(periodLabels) + `,
+                                labels: ` + this.safeStringify(periodLabels) + `,
                                 datasets: [
                                     {
                                         label: 'Document Count',
-                                        data: ` + JSON.stringify(docCountData) + `,
+                                        data: ` + this.safeStringify(docCountData) + `,
                                         borderColor: 'rgba(59, 130, 246, 1)',
                                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                                         tension: 0.2,
@@ -15736,7 +14670,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                                     },
                                     {
                                         label: 'Document Trend',
-                                        data: ` + JSON.stringify(docTrendData) + `,
+                                        data: ` + this.safeStringify(docTrendData) + `,
                                         borderColor: 'rgba(59, 130, 246, 0.5)',
                                         borderDash: [5, 5],
                                         borderWidth: 2,
@@ -15747,7 +14681,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                                     },
                                     {
                                         label: 'KC Count',
-                                        data: ` + JSON.stringify(kcCountData) + `,
+                                        data: ` + this.safeStringify(kcCountData) + `,
                                         borderColor: 'rgba(16, 185, 129, 1)',
                                         backgroundColor: 'rgba(16, 185, 129, 0.1)',
                                         tension: 0.2,
@@ -15757,7 +14691,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                                     },
                                     {
                                         label: 'KC Trend',
-                                        data: ` + JSON.stringify(kcTrendData) + `,
+                                        data: ` + this.safeStringify(kcTrendData) + `,
                                         borderColor: 'rgba(16, 185, 129, 0.5)',
                                         borderDash: [5, 5],
                                         borderWidth: 2,
@@ -15819,10 +14753,9 @@ The data shows operational activity patterns across multiple dimensions...`;
                         });
                     }
                 } catch (error) {
-                    console.error('Error creating docKCTrendsChart:', error);
                 }
             }, 100);
-        </scr` + `ipt>`;
+        </scr${'ipt>'}`;
         
         html += chartScript;
         return html;
@@ -16166,16 +15099,16 @@ The data shows operational activity patterns across multiple dimensions...`;
         const yearArray = Array.from(availableYears).sort();
         const showYearFilter = yearArray.length > 1;
         
-        html += `<scr` + `ipt>
+        html += `<scr${'ipt>'}
         setTimeout(() => {
             // Forecast Chart
             const forecastCtx = document.getElementById('forecastChart');
             if (forecastCtx) {
-                const periodLabels = ` + JSON.stringify(periods.map(p => this.formatPeriodDisplay(p))) + `;
-                const forecastLabels = ` + JSON.stringify(forecastPeriods.map(p => this.formatPeriodDisplay(p))) + `;
-                const historicalData = ` + JSON.stringify(values) + `;
-                const forecastData = ` + JSON.stringify(forecastValues) + `;
-                const trendLineData = ` + JSON.stringify([...Array(n + 3).keys()].map(i => slope * i + intercept)) + `;
+                const periodLabels = ` + this.safeStringify(periods.map(p => this.formatPeriodDisplay(p))) + `;
+                const forecastLabels = ` + this.safeStringify(forecastPeriods.map(p => this.formatPeriodDisplay(p))) + `;
+                const historicalData = ` + this.safeStringify(values) + `;
+                const forecastData = ` + this.safeStringify(forecastValues) + `;
+                const trendLineData = ` + this.safeStringify([...Array(n + 3).keys()].map(i => slope * i + intercept)) + `;
                 
                 new Chart(forecastCtx.getContext('2d'), {
                     type: 'line',
@@ -16243,7 +15176,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             // Add year filter if multiple years
             const filterContainer = document.getElementById('docSeasonalityFilterContainer');
             const showYearFilter = ${showYearFilter};
-            const yearArray = ${JSON.stringify(yearArray).replace(/</g, '\\u003c')};
+            const yearArray = ${this.safeStringify(yearArray)};
             
             if (filterContainer && showYearFilter) {
                 filterContainer.innerHTML = '<label style="font-weight: 500; color: #374151; margin-right: 10px;">Year Filter:</label>' +
@@ -16263,10 +15196,10 @@ The data shows operational activity patterns across multiple dimensions...`;
             // Store data globally for filter updates
             window.docSeasonalityData = {
                 all: {
-                    factors: ${JSON.stringify(seasonalityFactors).replace(/</g, '\\u003c')},
+                    factors: ${this.safeStringify(seasonalityFactors)},
                     average: ${overallAverage}
                 },
-                yearly: ${JSON.stringify(yearlySeasonalityFactors).replace(/</g, '\\u003c')}
+                yearly: ${this.safeStringify(yearlySeasonalityFactors)}
             };
             
             // Function to update seasonality display
@@ -16416,7 +15349,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             // Initialize the display
             updateDocSeasonalityDisplay();
         }, 100);` +
-        '</scr' + 'ipt>';
+        `</scr${'ipt>'}`;
         
         return html;
     }
@@ -16764,7 +15697,6 @@ The data shows operational activity patterns across multiple dimensions...`;
         
         return htmlParts.join('');
         } catch (error) {
-            console.error('Error generating TP-Doc Matrix:', error);
             // Return a fallback UI if matrix generation fails
             return `<div class="tp-doc-matrix-wrapper">
                 <h4 style="color: #2d3748; margin: 0;">📊 TP-Document Type Matrix</h4>
@@ -16912,7 +15844,6 @@ The data shows operational activity patterns across multiple dimensions...`;
         }
         
         if (!table) {
-            console.error('Table not found:', tableId);
             return;
         }
         
@@ -16945,7 +15876,6 @@ The data shows operational activity patterns across multiple dimensions...`;
         }
         
         if (!table) {
-            console.error('Table not found:', tableId);
             return;
         }
         
@@ -17066,6 +15996,9 @@ async function analyzeFiles() {
         // Generate HTML report
         updateProgress(90, 'Generating report...', 'Generate Report');
         const reportHtml = analyzer.generateHtmlReport(analysisData, insights);
+        
+        // Store the report HTML for export functionality
+        window.lastGeneratedReportHTML = reportHtml;
         
         // Display report in iframe
         updateProgress(95, 'Loading report...', 'Display Report');
@@ -17580,7 +16513,6 @@ async function analyzeFiles() {
         reportFrame.scrollIntoView({ behavior: 'smooth' });
         
     } catch (error) {
-        console.error('Analysis error:', error);
         hideProgress();
         showStatus(`Error: ${error.message}`, 'error');
     }
@@ -17588,14 +16520,14 @@ async function analyzeFiles() {
 
 // Export the generated report
 function exportGeneratedReport() {
-    const reportFrame = document.getElementById('reportFrame');
-    if (!reportFrame || !reportFrame.srcdoc) {
+    // Use the stored report HTML (stored when report is generated)
+    if (!window.lastGeneratedReportHTML) {
         alert('No report to export. Please generate a report first.');
         return;
     }
     
-    // Get the report HTML from the iframe
-    const reportHTML = reportFrame.srcdoc;
+    // Get the stored report HTML
+    const reportHTML = window.lastGeneratedReportHTML;
     
     // Create a Blob with the HTML content
     const blob = new Blob([reportHTML], { type: 'text/html' });
@@ -17643,19 +16575,6 @@ function closeTPRInstructions() {
     document.getElementById('tprInstructionsModal').style.display = 'none';
 }
 
-/**
- * Show Map instructions modal
- */
-function showMapInstructions() {
-    document.getElementById('mapInstructionsModal').style.display = 'block';
-}
-
-/**
- * Close Map instructions modal
- */
-function closeMapInstructions() {
-    document.getElementById('mapInstructionsModal').style.display = 'none';
-}
 
 /**
  * Show a modal dialog and close the menu
@@ -17740,7 +16659,7 @@ function exportDocumentAnalysis() {
 <head>
     <meta charset="UTF-8">
     <title>Document Analysis Export - ${analyzer.customerName || 'Report'}</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></scr` + `ipt>
+    <scr${'ipt'} src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></scr${'ipt>'}
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         table { border-collapse: collapse; width: 100%; margin: 20px 0; }
@@ -17769,6 +16688,11 @@ function exportDocumentAnalysis() {
     
     showStatus('Document Analysis exported successfully!', 'success');
 }
+
+        
+        // Check for problematic data
+
+// Function to fix problematic characters in Map data
 
 // Make tables sortable
 function makeTableSortable(tableId) {

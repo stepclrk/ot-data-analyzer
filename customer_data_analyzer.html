@@ -11780,10 +11780,10 @@ The data shows operational activity patterns across multiple dimensions...`;
                     html += '<div style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">';
                     html += '<table id="allMapsTable" style="width: 100%; border-collapse: collapse;">';
                     html += '<thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10;"><tr>';
-                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allMapsTable\'), 0)">Map Name <span class="sort-indicator">↕</span></th>';
-                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allMapsTable\'), 1)">Document Type <span class="sort-indicator">↕</span></th>';
-                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allMapsTable\'), 2)">TP Count <span class="sort-indicator">↕</span></th>';
-                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allMapsTable\'), 3)">Direction <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 0)">Map Name <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 1)">Document Type <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 2)">TP Count <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 3)">Direction <span class="sort-indicator">↕</span></th>';
                     html += '</tr></thead><tbody>';
                     
                     // Generate all maps rows
@@ -11825,10 +11825,10 @@ The data shows operational activity patterns across multiple dimensions...`;
                     html += '<div style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">';
                     html += '<table id="allTPsTable" style="width: 100%; border-collapse: collapse;">';
                     html += '<thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10;"><tr>';
-                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allTPsTable\'), 0)">TP ID <span class="sort-indicator">↕</span></th>';
-                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allTPsTable\'), 1)">Map Name <span class="sort-indicator">↕</span></th>';
-                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allTPsTable\'), 2)">Document Type <span class="sort-indicator">↕</span></th>';
-                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allTPsTable\'), 3)">Direction <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 0)">TP ID <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 1)">Map Name <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 2)">Document Type <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(this.parentElement.parentElement.parentElement, 3)">Direction <span class="sort-indicator">↕</span></th>';
                     html += '</tr></thead><tbody>';
                     
                     // Generate all TP-Map combinations
@@ -11871,6 +11871,62 @@ The data shows operational activity patterns across multiple dimensions...`;
                         contentDiv.innerHTML = html;
                     }
                     
+            }
+            
+            // Add filter functions for tables
+            window.filterAllMapsTable = function() {
+                const mapNameFilter = document.getElementById('allMapsFilterMapName').value.toLowerCase();
+                const docTypeFilter = document.getElementById('allMapsFilterDocType').value.toLowerCase();
+                const directionFilter = document.getElementById('allMapsFilterDirection').value.toLowerCase();
+                
+                const table = document.getElementById('allMapsTable');
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr');
+                
+                rows.forEach(row => {
+                    const mapName = row.cells[0].textContent.toLowerCase();
+                    const docType = row.cells[1].textContent.toLowerCase();
+                    const direction = row.getAttribute('data-direction');
+                    
+                    const mapNameMatch = mapName.includes(mapNameFilter);
+                    const docTypeMatch = docType.includes(docTypeFilter);
+                    const directionMatch = !directionFilter || direction === directionFilter;
+                    
+                    if (mapNameMatch && docTypeMatch && directionMatch) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            }
+            
+            window.filterAllTPsTable = function() {
+                const tpIdFilter = document.getElementById('allTPsFilterTPId').value.toLowerCase();
+                const mapNameFilter = document.getElementById('allTPsFilterMapName').value.toLowerCase();
+                const docTypeFilter = document.getElementById('allTPsFilterDocType').value.toLowerCase();
+                const directionFilter = document.getElementById('allTPsFilterDirection').value.toLowerCase();
+                
+                const table = document.getElementById('allTPsTable');
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr');
+                
+                rows.forEach(row => {
+                    const tpId = row.cells[0].textContent.toLowerCase();
+                    const mapName = row.cells[1].textContent.toLowerCase();
+                    const docType = row.cells[2].textContent.toLowerCase();
+                    const direction = row.getAttribute('data-direction');
+                    
+                    const tpIdMatch = tpId.includes(tpIdFilter);
+                    const mapNameMatch = mapName.includes(mapNameFilter);
+                    const docTypeMatch = docType.includes(docTypeFilter);
+                    const directionMatch = !directionFilter || direction === directionFilter;
+                    
+                    if (tpIdMatch && mapNameMatch && docTypeMatch && directionMatch) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
             }
             
             // Initialize display - trigger with checkbox checked by default

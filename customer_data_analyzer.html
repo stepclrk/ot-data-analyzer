@@ -481,6 +481,63 @@
     </style>
 </head>
 <body>
+    <!-- TPR Instructions Modal -->
+    <div id="tprInstructionsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000;">
+        <div style="position: relative; max-width: 800px; margin: 50px auto; background: white; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+            <div style="padding: 30px;">
+                <button onclick="closeTPRInstructions()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">×</button>
+                <h2 style="margin-top: 0; color: #2d3748; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">How to Export Trading Relationships from Trading Grid Online</h2>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 1: Access the Portal</h3>
+                    <p style="margin-bottom: 10px;">Log into the appropriate Trading Grid Online portal:</p>
+                    <ul style="list-style-type: disc; margin-left: 30px;">
+                        <li style="margin-bottom: 5px;"><strong>US users:</strong> <a href="https://tradinggrid.opentext.com/tgoportal/#/" target="_blank" style="color: #3182ce;">https://tradinggrid.opentext.com/tgoportal/#/</a></li>
+                        <li><strong>EMEA users:</strong> <a href="https://tradinggrid-eu.opentext.com/tgoportal/#/" target="_blank" style="color: #3182ce;">https://tradinggrid-eu.opentext.com/tgoportal/#/</a></li>
+                    </ul>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 2: Navigate to Customer Directory</h3>
+                    <ol style="list-style-type: decimal; margin-left: 30px;">
+                        <li style="margin-bottom: 5px;">Go to <strong>Community Manager</strong></li>
+                        <li style="margin-bottom: 5px;">Select <strong>Customer Directory</strong></li>
+                        <li>Locate and click on your customer's name</li>
+                    </ol>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 3: Access Trading Relationships</h3>
+                    <ol style="list-style-type: decimal; margin-left: 30px;">
+                        <li style="margin-bottom: 5px;">Click <strong>Manage Community</strong> (located in the upper right)</li>
+                        <li style="margin-bottom: 5px;">From the dropdown menu next to <strong>My Trading Community</strong>, select <strong>Trading Relationship</strong></li>
+                        <li style="margin-bottom: 5px;">Click the three dots (<strong>...</strong>) in the upper left to show more options</li>
+                        <li>Select <strong>Export all trading relationships</strong></li>
+                    </ol>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 4: Wait for Processing</h3>
+                    <p>An email notification will be sent to you once the export is complete.</p>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 5: Download Your Report</h3>
+                    <ol style="list-style-type: decimal; margin-left: 30px;">
+                        <li style="margin-bottom: 5px;">Log back into Trading Grid Online</li>
+                        <li style="margin-bottom: 5px;">Click the <strong>person icon</strong> in the upper right corner</li>
+                        <li style="margin-bottom: 5px;">Select <strong>My Downloads</strong></li>
+                        <li>Download the report in your preferred format</li>
+                    </ol>
+                </div>
+                
+                <div style="margin-top: 20px; text-align: center;">
+                    <button onclick="closeTPRInstructions()" style="padding: 10px 30px; background: #3182ce; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Menu Button -->
     <button class="menu-button" onclick="toggleMenu()">☰ Menu</button>
     
@@ -1209,7 +1266,9 @@
             </div>
             
             <div class="tpr-upload-section" style="margin-top: 20px; padding: 20px; background: #f0f7ff; border-radius: 8px; border: 1px solid #cce0ff;">
-                <h3 style="margin-top: 0; color: #2d3748;">Trading Partner Report (Optional)</h3>
+                <h3 style="margin-top: 0; color: #2d3748;">Trading Partner Report (Optional) 
+                    <a href="#" onclick="showTPRInstructions(); return false;" style="font-size: 0.8em; font-weight: normal; color: #3182ce; text-decoration: none; margin-left: 10px;">How do I generate?</a>
+                </h3>
                 <p style="color: #4a5568; margin-bottom: 15px;">Upload a Trading Partner Report file to show monthly volumes and communication paths</p>
                 <div class="upload-area" id="tprUploadArea" style="padding: 15px; background: white;">
                     <p>Drag and drop TPR file here or click to select</p>
@@ -17317,6 +17376,20 @@ function exportGeneratedReport() {
 function toggleMenu() {
     const dropdown = document.getElementById('menuDropdown');
     dropdown.classList.toggle('show');
+}
+
+/**
+ * Show TPR instructions modal
+ */
+function showTPRInstructions() {
+    document.getElementById('tprInstructionsModal').style.display = 'block';
+}
+
+/**
+ * Close TPR instructions modal
+ */
+function closeTPRInstructions() {
+    document.getElementById('tprInstructionsModal').style.display = 'none';
 }
 
 /**

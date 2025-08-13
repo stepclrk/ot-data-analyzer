@@ -833,6 +833,52 @@
                 <li>📈 <strong>Focus Areas:</strong> Start with Overview, then drill into specific tabs</li>
                 <li>🤝 <strong>Collaboration:</strong> Export key tables for team discussions</li>
             </ul>
+            
+            <h3>📡 Trading Partner Communications (Optional)</h3>
+            <p>Analyze monthly communication volumes from Trading Partner Reports to understand integration patterns.</p>
+            
+            <h4>How to Generate TPR Files:</h4>
+            <ol style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <li>Log into Trading Grid Online portal (US or EMEA)</li>
+                <li>Navigate to <strong>Trading Grid Executive Dashboard</strong></li>
+                <li>Select correct <strong>Solution ID</strong> (upper right)</li>
+                <li>Go to <strong>Reports</strong> → <strong>Trading Partner Report</strong></li>
+                <li>Select reporting period (monthly)</li>
+                <li>Export as CSV and upload to the analyzer</li>
+            </ol>
+            
+            <h4>TPR Features:</h4>
+            <ul>
+                <li>📊 Monthly volume trends by communication type</li>
+                <li>🔍 Filter by partner name, EDI address, or communication path</li>
+                <li>📈 Interactive charts showing volume trends</li>
+                <li>✅ Cross-reference with billing data to show only active partners</li>
+                <li>💾 Export filtered data to JSON or CSV</li>
+            </ul>
+            
+            <h3>🗺️ Map Analysis (Optional)</h3>
+            <p>Review all configured maps for trading partners, verify coverage, and identify integration patterns.</p>
+            
+            <h4>How to Export Map Configurations:</h4>
+            <ol style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <li>Access Trading Grid Online portal</li>
+                <li>Open <strong>Trading Grid Cartographer</strong> tile</li>
+                <li>Enter <strong>Solution ID</strong> (upper right corner)</li>
+                <li>Click <strong>Transactions</strong> (upper left)</li>
+                <li>Select <strong>Export</strong> option</li>
+                <li>Download CSV file and upload to analyzer</li>
+            </ol>
+            
+            <h4>Map Analysis Features:</h4>
+            <ul>
+                <li>📋 Complete list of all configured maps</li>
+                <li>🔄 Direction analysis (Inbound/Outbound)</li>
+                <li>📊 Document type statistics and counts</li>
+                <li>🎯 Trading partner identification based on direction</li>
+                <li>✅ Filter to show only maps for active trading partners</li>
+                <li>🔍 Search and filter by map name, sender, receiver, or document type</li>
+                <li>💾 Export map data to JSON or CSV formats</li>
+            </ul>
         </div>
     </div>
     
@@ -1047,6 +1093,67 @@
                         <li>Efficiency analysis by document type</li>
                         <li>Automated insights on document patterns</li>
                         <li>Export functionality (removed Export Analysis button as requested)</li>
+                    </ul>
+                </li>
+            </ul>
+            
+            <h4>📡 Trading Partner Communications Tab - Volume Analysis</h4>
+            <ul>
+                <li><strong>Communication Path Analysis:</strong>
+                    <ul style="margin-top: 5px; font-size: 0.9em;">
+                        <li>Identifies VAN, API, WEB, and other integration methods</li>
+                        <li>Shows volume distribution across communication types</li>
+                    </ul>
+                </li>
+                <li><strong>Monthly Trend Charts:</strong>
+                    <ul style="margin-top: 5px; font-size: 0.9em;">
+                        <li>Interactive line charts showing volume trends</li>
+                        <li>Compare multiple communication paths simultaneously</li>
+                    </ul>
+                </li>
+                <li><strong>Partner Filtering:</strong>
+                    <ul style="margin-top: 5px; font-size: 0.9em;">
+                        <li>Search by partner name or EDI address</li>
+                        <li>Filter by communication path type</li>
+                        <li>Show only active partners from billing data</li>
+                    </ul>
+                </li>
+                <li><strong>Export Options:</strong>
+                    <ul style="margin-top: 5px; font-size: 0.9em;">
+                        <li>Export filtered results to CSV or JSON</li>
+                        <li>Preserve filters in exported data</li>
+                    </ul>
+                </li>
+            </ul>
+            
+            <h4>🗺️ Map Analysis Tab - Configuration Review</h4>
+            <ul>
+                <li><strong>Map Configuration Table:</strong>
+                    <ul style="margin-top: 5px; font-size: 0.9em;">
+                        <li>Complete list of all configured maps</li>
+                        <li>Shows map name, sender, receiver, document type, and direction</li>
+                        <li>Color-coded direction indicators (green for inbound, blue for outbound)</li>
+                    </ul>
+                </li>
+                <li><strong>Document Type Analysis:</strong>
+                    <ul style="margin-top: 5px; font-size: 0.9em;">
+                        <li>Statistics by document type</li>
+                        <li>Unique map counts per document type</li>
+                        <li>Trading partner counts by document type</li>
+                    </ul>
+                </li>
+                <li><strong>Advanced Filtering:</strong>
+                    <ul style="margin-top: 5px; font-size: 0.9em;">
+                        <li>Filter by map name, sender, receiver, or document type</li>
+                        <li>Exact match or partial match options</li>
+                        <li>Cross-reference with billing data to show only active partners</li>
+                    </ul>
+                </li>
+                <li><strong>Trading Partner Logic:</strong>
+                    <ul style="margin-top: 5px; font-size: 0.9em;">
+                        <li>Inbound maps: Sender is the trading partner</li>
+                        <li>Outbound maps: Receiver is the trading partner</li>
+                        <li>Automatic partner identification based on direction</li>
                     </ul>
                 </li>
             </ul>

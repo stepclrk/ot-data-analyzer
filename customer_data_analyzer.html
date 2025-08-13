@@ -538,6 +538,61 @@
         </div>
     </div>
     
+    <!-- Map Instructions Modal -->
+    <div id="mapInstructionsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000;">
+        <div style="position: relative; max-width: 800px; margin: 50px auto; background: white; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+            <div style="padding: 30px;">
+                <button onclick="closeMapInstructions()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">×</button>
+                <h2 style="margin-top: 0; color: #2d3748; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">How to Export Transaction Maps from Trading Grid Cartographer</h2>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 1: Access the Portal</h3>
+                    <p style="margin-bottom: 10px;">Log into the appropriate Trading Grid Online portal:</p>
+                    <ul style="list-style-type: disc; margin-left: 30px;">
+                        <li style="margin-bottom: 5px;"><strong>US users:</strong> <a href="https://tradinggrid.opentext.com/tgoportal/#/" target="_blank" style="color: #3182ce;">https://tradinggrid.opentext.com/tgoportal/#/</a></li>
+                        <li><strong>EMEA users:</strong> <a href="https://tradinggrid-eu.opentext.com/tgoportal/#/" target="_blank" style="color: #3182ce;">https://tradinggrid-eu.opentext.com/tgoportal/#/</a></li>
+                    </ul>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 2: Open Trading Grid Cartographer</h3>
+                    <ol style="list-style-type: decimal; margin-left: 30px;">
+                        <li>Select the <strong>Trading Grid Cartographer</strong> tile from the main dashboard</li>
+                    </ol>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 3: Enter Solution ID</h3>
+                    <ol style="list-style-type: decimal; margin-left: 30px;">
+                        <li style="margin-bottom: 5px;">In the <strong>upper right corner</strong>, input the correct <strong>Solution ID</strong> for your customer</li>
+                        <li>Press <strong>Enter</strong> to confirm</li>
+                    </ol>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 4: View Transaction Maps</h3>
+                    <ol style="list-style-type: decimal; margin-left: 30px;">
+                        <li style="margin-bottom: 5px;">In the <strong>upper left</strong>, select <strong>Transactions</strong></li>
+                        <li>This will display all maps used by your Trading Partners</li>
+                    </ol>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 10px;">Step 5: Export Data</h3>
+                    <ol style="list-style-type: decimal; margin-left: 30px;">
+                        <li style="margin-bottom: 5px;">Locate the <strong>export option</strong> in the upper left area</li>
+                        <li style="margin-bottom: 5px;">Click <strong>Export</strong></li>
+                        <li>The file will automatically download as a <strong>CSV file</strong></li>
+                    </ol>
+                </div>
+                
+                <div style="margin-top: 20px; text-align: center;">
+                    <button onclick="closeMapInstructions()" style="padding: 10px 30px; background: #3182ce; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Menu Button -->
     <button class="menu-button" onclick="toggleMenu()">☰ Menu</button>
     
@@ -1282,7 +1337,9 @@
             </div>
             
             <div class="map-upload-section" style="margin-top: 20px; padding: 20px; background: #f5f0ff; border-radius: 8px; border: 1px solid #e0ccff;">
-                <h3 style="margin-top: 0; color: #2d3748;">Map Transaction File (Optional)</h3>
+                <h3 style="margin-top: 0; color: #2d3748;">Map Transaction File (Optional)
+                    <a href="#" onclick="showMapInstructions(); return false;" style="font-size: 0.8em; font-weight: normal; color: #3182ce; text-decoration: none; margin-left: 10px;">How do I generate?</a>
+                </h3>
                 <p style="color: #4a5568; margin-bottom: 15px;">Upload a transaction CSV file to analyze map usage, document types, and trading partners</p>
                 <div class="upload-area" id="mapUploadArea" style="padding: 15px; background: white;">
                     <p>Drag and drop transaction CSV file here or click to select</p>
@@ -11273,7 +11330,7 @@ The data shows operational activity patterns across multiple dimensions...`;
         const mapAnalysis = window.mapData.analysis;
         const summary = mapAnalysis.summary;
         
-        let html = `<div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+        let html = `<div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 100%; overflow-x: hidden;">
             <h3 style="margin-top: 0; color: #1a365d; margin-bottom: 30px;">🗺️ Map Analysis
                 <span class="info-icon">i
                     <div class="tooltip">
@@ -11334,7 +11391,17 @@ The data shows operational activity patterns across multiple dimensions...`;
         // All Maps Table with Filtering
         html += `
         <div style="margin-bottom: 40px;">
-            <h4 style="color: #2d3748; margin-bottom: 20px;">📊 All Maps</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h4 style="color: #2d3748; margin: 0;">📊 All Maps</h4>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="exportAllMapsToJSON()" style="padding: 8px 16px; background: #4299e1; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                        📥 Export JSON
+                    </button>
+                    <button onclick="exportAllMapsToCSV()" style="padding: 8px 16px; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                        📥 Export CSV
+                    </button>
+                </div>
+            </div>
             
             <!-- Filters for All Maps -->
             <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
@@ -11413,7 +11480,17 @@ The data shows operational activity patterns across multiple dimensions...`;
         // All Trading Partners Table with Filtering
         html += `
         <div style="margin-bottom: 40px;">
-            <h4 style="color: #2d3748; margin-bottom: 20px;">🤝 All Trading Partners</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h4 style="color: #2d3748; margin: 0;">🤝 All Trading Partners</h4>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="exportAllTPsToJSON()" style="padding: 8px 16px; background: #4299e1; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                        📥 Export JSON
+                    </button>
+                    <button onclick="exportAllTPsToCSV()" style="padding: 8px 16px; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                        📥 Export CSV
+                    </button>
+                </div>
+            </div>
             
             <!-- Filters for All TPs -->
             <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
@@ -11763,7 +11840,13 @@ The data shows operational activity patterns across multiple dimensions...`;
                     // Generate new table structure matching the main generateMapAnalysis function
                     // All Maps Table
                     html += '<div style="margin-bottom: 40px;">';
-                    html += '<h4 style="color: #2d3748; margin-bottom: 20px;">📊 All Maps</h4>';
+                    html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">';
+                    html += '<h4 style="color: #2d3748; margin: 0;">📊 All Maps</h4>';
+                    html += '<div style="display: flex; gap: 10px;">';
+                    html += '<button onclick="exportAllMapsToJSON()" style="padding: 8px 16px; background: #4299e1; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">📥 Export JSON</button>';
+                    html += '<button onclick="exportAllMapsToCSV()" style="padding: 8px 16px; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">📥 Export CSV</button>';
+                    html += '</div>';
+                    html += '</div>';
                     
                     // Filters for All Maps
                     html += '<div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">';
@@ -11806,7 +11889,13 @@ The data shows operational activity patterns across multiple dimensions...`;
                     
                     // All Trading Partners Table
                     html += '<div style="margin-bottom: 40px;">';
-                    html += '<h4 style="color: #2d3748; margin-bottom: 20px;">🤝 All Trading Partners</h4>';
+                    html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">';
+                    html += '<h4 style="color: #2d3748; margin: 0;">🤝 All Trading Partners</h4>';
+                    html += '<div style="display: flex; gap: 10px;">';
+                    html += '<button onclick="exportAllTPsToJSON()" style="padding: 8px 16px; background: #4299e1; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">📥 Export JSON</button>';
+                    html += '<button onclick="exportAllTPsToCSV()" style="padding: 8px 16px; background: #48bb78; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">📥 Export CSV</button>';
+                    html += '</div>';
+                    html += '</div>';
                     
                     // Filters for All TPs
                     html += '<div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">';
@@ -11871,6 +11960,112 @@ The data shows operational activity patterns across multiple dimensions...`;
                         contentDiv.innerHTML = html;
                     }
                     
+            }
+            
+            // Export functions for All Maps table
+            window.exportAllMapsToJSON = function() {
+                const table = document.getElementById('allMapsTable');
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr');
+                const data = [];
+                
+                rows.forEach(row => {
+                    if (row.style.display !== 'none') {
+                        data.push({
+                            'Map Name': row.cells[0].textContent.trim(),
+                            'Document Type': row.cells[1].textContent.trim(),
+                            'TP Count': parseInt(row.cells[2].textContent.trim()),
+                            'Direction': row.cells[3].textContent.trim().replace(/[↓↑]/g, '').trim()
+                        });
+                    }
+                });
+                
+                const json = JSON.stringify(data, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'all_maps_export.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+            
+            window.exportAllMapsToCSV = function() {
+                const table = document.getElementById('allMapsTable');
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr');
+                
+                let csv = 'Map Name,Document Type,TP Count,Direction\n';
+                rows.forEach(row => {
+                    if (row.style.display !== 'none') {
+                        const mapName = row.cells[0].textContent.trim();
+                        const docType = row.cells[1].textContent.trim();
+                        const tpCount = row.cells[2].textContent.trim();
+                        const direction = row.cells[3].textContent.trim().replace(/[↓↑]/g, '').trim();
+                        csv += '"' + mapName + '","' + docType + '","' + tpCount + '","' + direction + '"\n';
+                    }
+                });
+                
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'all_maps_export.csv';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+            
+            // Export functions for All Trading Partners table
+            window.exportAllTPsToJSON = function() {
+                const table = document.getElementById('allTPsTable');
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr');
+                const data = [];
+                
+                rows.forEach(row => {
+                    if (row.style.display !== 'none') {
+                        data.push({
+                            'TP ID': row.cells[0].textContent.trim(),
+                            'Map Name': row.cells[1].textContent.trim(),
+                            'Document Type': row.cells[2].textContent.trim(),
+                            'Direction': row.cells[3].textContent.trim().replace(/[↓↑]/g, '').trim()
+                        });
+                    }
+                });
+                
+                const json = JSON.stringify(data, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'all_trading_partners_export.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+            
+            window.exportAllTPsToCSV = function() {
+                const table = document.getElementById('allTPsTable');
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr');
+                
+                let csv = 'TP ID,Map Name,Document Type,Direction\n';
+                rows.forEach(row => {
+                    if (row.style.display !== 'none') {
+                        const tpId = row.cells[0].textContent.trim();
+                        const mapName = row.cells[1].textContent.trim();
+                        const docType = row.cells[2].textContent.trim();
+                        const direction = row.cells[3].textContent.trim().replace(/[↓↑]/g, '').trim();
+                        csv += '"' + tpId + '","' + mapName + '","' + docType + '","' + direction + '"\n';
+                    }
+                });
+                
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'all_trading_partners_export.csv';
+                a.click();
+                URL.revokeObjectURL(url);
             }
             
             // Add filter functions for tables
@@ -17446,6 +17641,20 @@ function showTPRInstructions() {
  */
 function closeTPRInstructions() {
     document.getElementById('tprInstructionsModal').style.display = 'none';
+}
+
+/**
+ * Show Map instructions modal
+ */
+function showMapInstructions() {
+    document.getElementById('mapInstructionsModal').style.display = 'block';
+}
+
+/**
+ * Close Map instructions modal
+ */
+function closeMapInstructions() {
+    document.getElementById('mapInstructionsModal').style.display = 'none';
 }
 
 /**

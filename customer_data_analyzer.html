@@ -11234,7 +11234,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             <div style="background: #f0f9ff; border: 1px solid #0ea5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="checkbox" id="filterMapActiveTPsToggle" onchange="toggleMapActiveTPFilter()" style="width: 20px; height: 20px; cursor: pointer;">
+                        <input type="checkbox" id="filterMapActiveTPsToggle" checked onchange="toggleMapActiveTPFilter()" style="width: 20px; height: 20px; cursor: pointer;">
                         <label for="filterMapActiveTPsToggle" style="cursor: pointer; font-weight: 500; color: #0369a1;">
                             🎯 Show only Trading Partners with billing activity
                         </label>
@@ -11272,83 +11272,75 @@ The data shows operational activity patterns across multiple dimensions...`;
             </div>
         </div>`;
         
-        // Maps by Document Type
+        // All Maps Table with Filtering
         html += `
         <div style="margin-bottom: 40px;">
-            <h4 style="color: #2d3748; margin-bottom: 20px;">📄 Maps by Document Type</h4>
-            <div style="display: grid; gap: 15px;">`;
-        
-        // Sort document types by number of maps
-        const sortedDocTypes = Object.entries(mapAnalysis.docTypes)
-            .sort((a, b) => b[1].maps.length - a[1].maps.length);
-        
-        sortedDocTypes.slice(0, 10).forEach(([docType, data]) => {
-            const percentage = ((data.transactions / summary.totalTransactions) * 100).toFixed(1);
+            <h4 style="color: #2d3748; margin-bottom: 20px;">📊 All Maps</h4>
             
-            html += `
-            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <div style="font-weight: 600; color: #1e293b; font-size: 1.1em;">${docType}</div>
-                    <div style="display: flex; gap: 15px;">
-                        <span style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">
-                            ${data.maps.length} maps
-                        </span>
-                        <span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">
-                            ${data.tps.length} TPs
-                        </span>
-                        <span style="background: #ecfdf5; color: #065f46; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">
-                            ${percentage}% volume
-                        </span>
+            <!-- Filters for All Maps -->
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div>
+                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Map Name</label>
+                        <input type="text" id="allMapsFilterMapName" onkeyup="filterAllMapsTable()" 
+                               style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;"
+                               placeholder="Filter by map name...">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Document Type</label>
+                        <input type="text" id="allMapsFilterDocType" onkeyup="filterAllMapsTable()"
+                               style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;"
+                               placeholder="Filter by document type...">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Direction</label>
+                        <select id="allMapsFilterDirection" onchange="filterAllMapsTable()"
+                                style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;">
+                            <option value="">All Directions</option>
+                            <option value="inbound">Inbound</option>
+                            <option value="outbound">Outbound</option>
+                        </select>
                     </div>
                 </div>
-                <div style="font-size: 0.9em; color: #64748b;">
-                    Maps: ${data.maps.slice(0, 3).join(', ')}${data.maps.length > 3 ? '...' : ''}
-                </div>
-            </div>`;
-        });
-        
-        html += `</div></div>`;
-        
-        // Top Maps by Usage
-        html += `
-        <div style="margin-bottom: 40px;">
-            <h4 style="color: #2d3748; margin-bottom: 20px;">🔝 Top Maps by Trading Partner Usage</h4>
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background: #f1f5f9;">
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Map Name</th>
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Document Type</th>
-                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">TP Count</th>
-                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Transactions</th>
-                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Direction</th>
+            </div>
+            
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <table id="allMapsTable" style="width: 100%; border-collapse: collapse;">
+                    <thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allMapsTable'), 0)">
+                                Map Name <span class="sort-indicator">↕</span>
+                            </th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allMapsTable'), 1)">
+                                Document Type <span class="sort-indicator">↕</span>
+                            </th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allMapsTable'), 2)">
+                                TP Count <span class="sort-indicator">↕</span>
+                            </th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allMapsTable'), 3)">
+                                Direction <span class="sort-indicator">↕</span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>`;
         
-        // Sort maps by number of TPs using them
-        const sortedMaps = Object.entries(mapAnalysis.maps)
-            .sort((a, b) => b[1].tps.length - a[1].tps.length)
-            .slice(0, 20);
-        
-        sortedMaps.forEach(([mapName, mapData], index) => {
+        // Generate all maps rows
+        Object.entries(mapAnalysis.maps).forEach(([mapName, mapData], index) => {
             const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+            const direction = mapData.directions.inbound > mapData.directions.outbound ? 'Inbound' : 'Outbound';
             const directionBadge = mapData.directions.inbound > mapData.directions.outbound 
                 ? '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↓ Inbound</span>'
-                : mapData.directions.outbound > mapData.directions.inbound
-                ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↑ Outbound</span>'
-                : '<span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↕ Both</span>';
+                : '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↑ Outbound</span>';
             
             html += `
-            <tr style="background: ${rowBg}; border-bottom: 1px solid #e5e7eb;">
+            <tr style="background: ${rowBg}; border-bottom: 1px solid #e5e7eb;" data-direction="${direction.toLowerCase()}">
                 <td style="padding: 10px; font-weight: 500;">${mapName}</td>
                 <td style="padding: 10px;">${mapData.docType}</td>
                 <td style="padding: 10px; text-align: center;">
-                    <span style="background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-weight: 600;">
+                    <span style="background: #e0e7ff; color: #4c1d95; padding: 4px 8px; border-radius: 4px; font-weight: 600;">
                         ${mapData.tps.length}
                     </span>
                 </td>
-                <td style="padding: 10px; text-align: center;">${mapData.transactions.toLocaleString()}</td>
                 <td style="padding: 10px; text-align: center;">${directionBadge}</td>
             </tr>`;
         });
@@ -11359,48 +11351,100 @@ The data shows operational activity patterns across multiple dimensions...`;
             </div>
         </div>`;
         
-        // Trading Partners by Map Usage
+        // All Trading Partners Table with Filtering
         html += `
         <div style="margin-bottom: 40px;">
-            <h4 style="color: #2d3748; margin-bottom: 20px;">🤝 Trading Partners by Map Usage</h4>
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background: #f1f5f9;">
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Trading Partner</th>
-                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Maps Used</th>
-                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Doc Types</th>
-                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Transactions</th>
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Primary Maps</th>
+            <h4 style="color: #2d3748; margin-bottom: 20px;">🤝 All Trading Partners</h4>
+            
+            <!-- Filters for All TPs -->
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div>
+                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">TP ID</label>
+                        <input type="text" id="allTPsFilterTPId" onkeyup="filterAllTPsTable()" 
+                               style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;"
+                               placeholder="Filter by TP ID...">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Map Name</label>
+                        <input type="text" id="allTPsFilterMapName" onkeyup="filterAllTPsTable()"
+                               style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;"
+                               placeholder="Filter by map name...">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Document Type</label>
+                        <input type="text" id="allTPsFilterDocType" onkeyup="filterAllTPsTable()"
+                               style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;"
+                               placeholder="Filter by document type...">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Direction</label>
+                        <select id="allTPsFilterDirection" onchange="filterAllTPsTable()"
+                                style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;">
+                            <option value="">All Directions</option>
+                            <option value="inbound">Inbound</option>
+                            <option value="outbound">Outbound</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <table id="allTPsTable" style="width: 100%; border-collapse: collapse;">
+                    <thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allTPsTable'), 0)">
+                                TP ID <span class="sort-indicator">↕</span>
+                            </th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allTPsTable'), 1)">
+                                Map Name <span class="sort-indicator">↕</span>
+                            </th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allTPsTable'), 2)">
+                                Document Type <span class="sort-indicator">↕</span>
+                            </th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById('allTPsTable'), 3)">
+                                Direction <span class="sort-indicator">↕</span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>`;
         
-        // Sort TPs by number of transactions
-        const sortedTPs = Object.entries(mapAnalysis.tpUsage)
-            .sort((a, b) => b[1].transactions - a[1].transactions)
-            .slice(0, 20);
+        // Generate all TP-Map combinations
+        let tpMapRows = [];
+        Object.entries(mapAnalysis.tpUsage).forEach(([tpId, tpData]) => {
+            tpData.maps.forEach(mapName => {
+                const mapData = mapAnalysis.maps[mapName];
+                if (mapData) {
+                    // Determine direction for this specific TP-Map combination
+                    const direction = mapData.directions.inbound > mapData.directions.outbound ? 'Inbound' : 'Outbound';
+                    tpMapRows.push({
+                        tpId,
+                        mapName,
+                        docType: mapData.docType,
+                        direction
+                    });
+                }
+            });
+        });
         
-        sortedTPs.forEach(([tpId, tpData], index) => {
+        // Sort by TP ID then by Map Name
+        tpMapRows.sort((a, b) => {
+            if (a.tpId !== b.tpId) return a.tpId.localeCompare(b.tpId);
+            return a.mapName.localeCompare(b.mapName);
+        });
+        
+        tpMapRows.forEach(({tpId, mapName, docType, direction}, index) => {
             const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+            const directionBadge = direction === 'Inbound'
+                ? '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↓ Inbound</span>'
+                : '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↑ Outbound</span>';
             
             html += `
-            <tr style="background: ${rowBg}; border-bottom: 1px solid #e5e7eb;">
+            <tr style="background: ${rowBg}; border-bottom: 1px solid #e5e7eb;" data-direction="${direction.toLowerCase()}">
                 <td style="padding: 10px; font-weight: 500;">${tpId}</td>
-                <td style="padding: 10px; text-align: center;">
-                    <span style="background: #f3e8ff; color: #6b21a8; padding: 4px 8px; border-radius: 4px; font-weight: 600;">
-                        ${tpData.maps.length}
-                    </span>
-                </td>
-                <td style="padding: 10px; text-align: center;">
-                    <span style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-weight: 600;">
-                        ${tpData.docTypes.length}
-                    </span>
-                </td>
-                <td style="padding: 10px; text-align: center;">${tpData.transactions.toLocaleString()}</td>
-                <td style="padding: 10px; font-size: 0.9em; color: #64748b;">
-                    ${tpData.maps.slice(0, 2).join(', ')}${tpData.maps.length > 2 ? '...' : ''}
-                </td>
+                <td style="padding: 10px;">${mapName}</td>
+                <td style="padding: 10px;">${docType}</td>
+                <td style="padding: 10px; text-align: center;">${directionBadge}</td>
             </tr>`;
         });
         
@@ -11523,6 +11567,63 @@ The data shows operational activity patterns across multiple dimensions...`;
                 updateMapAnalysisDisplay(isFiltered);
             }
             
+            // Filter function for All Maps table
+            window.filterAllMapsTable = function() {
+                const mapNameFilter = document.getElementById('allMapsFilterMapName').value.toLowerCase();
+                const docTypeFilter = document.getElementById('allMapsFilterDocType').value.toLowerCase();
+                const directionFilter = document.getElementById('allMapsFilterDirection').value.toLowerCase();
+                
+                const table = document.getElementById('allMapsTable');
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr');
+                
+                rows.forEach(row => {
+                    const mapName = row.cells[0].textContent.toLowerCase();
+                    const docType = row.cells[1].textContent.toLowerCase();
+                    const direction = row.getAttribute('data-direction');
+                    
+                    const mapNameMatch = mapName.includes(mapNameFilter);
+                    const docTypeMatch = docType.includes(docTypeFilter);
+                    const directionMatch = !directionFilter || direction === directionFilter;
+                    
+                    if (mapNameMatch && docTypeMatch && directionMatch) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Filter function for All TPs table
+            window.filterAllTPsTable = function() {
+                const tpIdFilter = document.getElementById('allTPsFilterTPId').value.toLowerCase();
+                const mapNameFilter = document.getElementById('allTPsFilterMapName').value.toLowerCase();
+                const docTypeFilter = document.getElementById('allTPsFilterDocType').value.toLowerCase();
+                const directionFilter = document.getElementById('allTPsFilterDirection').value.toLowerCase();
+                
+                const table = document.getElementById('allTPsTable');
+                const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr');
+                
+                rows.forEach(row => {
+                    const tpId = row.cells[0].textContent.toLowerCase();
+                    const mapName = row.cells[1].textContent.toLowerCase();
+                    const docType = row.cells[2].textContent.toLowerCase();
+                    const direction = row.getAttribute('data-direction');
+                    
+                    const tpIdMatch = tpId.includes(tpIdFilter);
+                    const mapNameMatch = mapName.includes(mapNameFilter);
+                    const docTypeMatch = docType.includes(docTypeFilter);
+                    const directionMatch = !directionFilter || direction === directionFilter;
+                    
+                    if (tpIdMatch && mapNameMatch && docTypeMatch && directionMatch) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            }
+            
             function updateMapAnalysisDisplay(isFiltered) {
                 const filterStatus = document.getElementById('mapFilterStatus');
                 const contentDiv = document.getElementById('mapAnalysisContent');
@@ -11600,164 +11701,110 @@ The data shows operational activity patterns across multiple dimensions...`;
                     html += '</div>';
                     html += '</div>';
                     
-                    // Maps by Document Type
+                    // Generate new table structure matching the main generateMapAnalysis function
+                    // All Maps Table
                     html += '<div style="margin-bottom: 40px;">';
-                    html += '<h4 style="color: #2d3748; margin-bottom: 20px;">📄 Maps by Document Type</h4>';
-                    html += '<div style="display: grid; gap: 15px;">';
+                    html += '<h4 style="color: #2d3748; margin-bottom: 20px;">📊 All Maps</h4>';
                     
-                    // Sort document types by number of maps
-                    const sortedDocTypes = Object.entries(mapAnalysis.docTypes)
-                        .sort((a, b) => b[1].maps.length - a[1].maps.length);
-                    
-                    sortedDocTypes.slice(0, 10).forEach(([docType, data]) => {
-                        const percentage = ((data.transactions / summary.totalTransactions) * 100).toFixed(1);
-                        
-                        html += '<div style="background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">';
-                        html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">';
-                        html += '<div style="font-weight: 600; color: #1e293b; font-size: 1.1em;">' + docType + '</div>';
-                        html += '<div style="display: flex; gap: 15px;">';
-                        html += '<span style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">' + data.maps.length + ' maps</span>';
-                        html += '<span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">' + data.tps.length + ' TPs</span>';
-                        html += '<span style="background: #ecfdf5; color: #065f46; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">' + percentage + '% volume</span>';
-                        html += '</div>';
-                        html += '</div>';
-                        html += '<div style="font-size: 0.9em; color: #64748b;">Maps: ' + data.maps.slice(0, 3).join(', ') + (data.maps.length > 3 ? '...' : '') + '</div>';
-                        html += '</div>';
-                    });
-                    
+                    // Filters for All Maps
+                    html += '<div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">';
+                    html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
+                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Map Name</label>';
+                    html += '<input type="text" id="allMapsFilterMapName" onkeyup="filterAllMapsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;" placeholder="Filter by map name..."></div>';
+                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Document Type</label>';
+                    html += '<input type="text" id="allMapsFilterDocType" onkeyup="filterAllMapsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;" placeholder="Filter by document type..."></div>';
+                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Direction</label>';
+                    html += '<select id="allMapsFilterDirection" onchange="filterAllMapsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;">';
+                    html += '<option value="">All Directions</option><option value="inbound">Inbound</option><option value="outbound">Outbound</option></select></div>';
                     html += '</div></div>';
                     
-                    // Top Maps by Usage
-                    html += '<div style="margin-bottom: 40px;">';
-                    html += '<h4 style="color: #2d3748; margin-bottom: 20px;">🔝 Top Maps by Trading Partner Usage</h4>';
-                    html += '<div style="overflow-x: auto;">';
-                    html += '<table style="width: 100%; border-collapse: collapse;">';
-                    html += '<thead><tr style="background: #f1f5f9;">';
-                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Map Name</th>';
-                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1;">Document Type</th>';
-                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">TP Count</th>';
-                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Transactions</th>';
-                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1;">Direction</th>';
+                    html += '<div style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">';
+                    html += '<table id="allMapsTable" style="width: 100%; border-collapse: collapse;">';
+                    html += '<thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10;"><tr>';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allMapsTable\'), 0)">Map Name <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allMapsTable\'), 1)">Document Type <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allMapsTable\'), 2)">TP Count <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allMapsTable\'), 3)">Direction <span class="sort-indicator">↕</span></th>';
                     html += '</tr></thead><tbody>';
                     
-                    // Sort maps by number of TPs using them
-                    const sortedMaps = Object.entries(mapAnalysis.maps)
-                        .sort((a, b) => b[1].tps.length - a[1].tps.length)
-                        .slice(0, 20);
-                    
-                    sortedMaps.forEach(([mapName, mapData], index) => {
+                    // Generate all maps rows
+                    Object.entries(mapAnalysis.maps).forEach(([mapName, mapData], index) => {
                         const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                        const direction = mapData.directions.inbound > mapData.directions.outbound ? 'Inbound' : 'Outbound';
                         const directionBadge = mapData.directions.inbound > mapData.directions.outbound 
                             ? '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↓ Inbound</span>'
-                            : mapData.directions.outbound > mapData.directions.inbound
-                            ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↑ Outbound</span>'
-                            : '<span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↕ Both</span>';
+                            : '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↑ Outbound</span>';
                         
-                        html += '<tr style="background: ' + rowBg + '; border-bottom: 1px solid #e5e7eb;">';
+                        html += '<tr style="background: ' + rowBg + '; border-bottom: 1px solid #e5e7eb;" data-direction="' + direction.toLowerCase() + '">';
                         html += '<td style="padding: 10px; font-weight: 500;">' + mapName + '</td>';
                         html += '<td style="padding: 10px;">' + mapData.docType + '</td>';
-                        html += '<td style="padding: 10px; text-align: center;"><span style="background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-weight: 600;">' + mapData.tps.length + '</span></td>';
-                        html += '<td style="padding: 10px; text-align: center;">' + mapData.transactions.toLocaleString() + '</td>';
+                        html += '<td style="padding: 10px; text-align: center;"><span style="background: #e0e7ff; color: #4c1d95; padding: 4px 8px; border-radius: 4px; font-weight: 600;">' + mapData.tps.length + '</span></td>';
                         html += '<td style="padding: 10px; text-align: center;">' + directionBadge + '</td>';
                         html += '</tr>';
                     });
                     
                     html += '</tbody></table></div></div>';
                     
-                    // Trading Partners by Map Usage - Card Layout
+                    // All Trading Partners Table
                     html += '<div style="margin-bottom: 40px;">';
-                    html += '<h4 style="color: #2d3748; margin-bottom: 20px;">🤝 Trading Partners by Map Usage</h4>';
+                    html += '<h4 style="color: #2d3748; margin-bottom: 20px;">🤝 All Trading Partners</h4>';
                     
-                    // Add a summary section
-                    const totalTPs = Object.keys(mapAnalysis.tpUsage).length;
-                    const tpsWithMultipleMaps = Object.values(mapAnalysis.tpUsage).filter(tp => tp.maps.length > 1).length;
-                    
+                    // Filters for All TPs
                     html += '<div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">';
-                    html += '<div style="display: flex; gap: 30px; flex-wrap: wrap;">';
-                    html += '<div><span style="color: #64748b;">Total Trading Partners:</span> <strong>' + totalTPs + '</strong></div>';
-                    html += '<div><span style="color: #64748b;">TPs using multiple maps:</span> <strong>' + tpsWithMultipleMaps + '</strong></div>';
-                    html += '<div><span style="color: #64748b;">Average maps per TP:</span> <strong>' + 
-                            (Object.values(mapAnalysis.tpUsage).reduce((sum, tp) => sum + tp.maps.length, 0) / totalTPs).toFixed(1) + '</strong></div>';
-                    html += '</div>';
-                    html += '</div>';
+                    html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
+                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">TP ID</label>';
+                    html += '<input type="text" id="allTPsFilterTPId" onkeyup="filterAllTPsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;" placeholder="Filter by TP ID..."></div>';
+                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Map Name</label>';
+                    html += '<input type="text" id="allTPsFilterMapName" onkeyup="filterAllTPsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;" placeholder="Filter by map name..."></div>';
+                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Document Type</label>';
+                    html += '<input type="text" id="allTPsFilterDocType" onkeyup="filterAllTPsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;" placeholder="Filter by document type..."></div>';
+                    html += '<div><label style="display: block; font-size: 0.9em; color: #64748b; margin-bottom: 5px;">Direction</label>';
+                    html += '<select id="allTPsFilterDirection" onchange="filterAllTPsTable()" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.95em;">';
+                    html += '<option value="">All Directions</option><option value="inbound">Inbound</option><option value="outbound">Outbound</option></select></div>';
+                    html += '</div></div>';
                     
-                    // Create expandable cards for each TP
-                    html += '<div style="max-height: 600px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">';
+                    html += '<div style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">';
+                    html += '<table id="allTPsTable" style="width: 100%; border-collapse: collapse;">';
+                    html += '<thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10;"><tr>';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allTPsTable\'), 0)">TP ID <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allTPsTable\'), 1)">Map Name <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: left; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allTPsTable\'), 2)">Document Type <span class="sort-indicator">↕</span></th>';
+                    html += '<th style="padding: 12px; text-align: center; border-bottom: 2px solid #cbd5e1; cursor: pointer;" onclick="sortTable(document.getElementById(\'allTPsTable\'), 3)">Direction <span class="sort-indicator">↕</span></th>';
+                    html += '</tr></thead><tbody>';
                     
-                    // Sort TPs by number of maps used
-                    const sortedTPs = Object.entries(mapAnalysis.tpUsage)
-                        .sort((a, b) => b[1].maps.length - a[1].maps.length);
-                    
-                    // Group TPs by number of maps for better organization
-                    const tpGroups = {};
-                    sortedTPs.forEach(([tpId, tpData]) => {
-                        const mapCount = tpData.maps.length;
-                        if (!tpGroups[mapCount]) {
-                            tpGroups[mapCount] = [];
-                        }
-                        tpGroups[mapCount].push({ id: tpId, data: tpData });
+                    // Generate all TP-Map combinations
+                    let tpMapRows = [];
+                    Object.entries(mapAnalysis.tpUsage).forEach(([tpId, tpData]) => {
+                        tpData.maps.forEach(mapName => {
+                            const mapData = mapAnalysis.maps[mapName];
+                            if (mapData) {
+                                const direction = mapData.directions.inbound > mapData.directions.outbound ? 'Inbound' : 'Outbound';
+                                tpMapRows.push({ tpId, mapName, docType: mapData.docType, direction });
+                            }
+                        });
                     });
                     
-                    // Display grouped TPs
-                    Object.keys(tpGroups)
-                        .sort((a, b) => b - a)
-                        .forEach(mapCount => {
-                            const group = tpGroups[mapCount];
-                            const groupColor = mapCount > 5 ? '#dc2626' : mapCount > 3 ? '#ea580c' : mapCount > 1 ? '#0891b2' : '#64748b';
-                            
-                            html += '<div style="margin-bottom: 15px;">';
-                            html += '<div style="background: linear-gradient(90deg, ' + groupColor + '10 0%, transparent 100%); padding: 8px 12px; border-left: 3px solid ' + groupColor + '; margin-bottom: 10px;">';
-                            html += '<strong style="color: ' + groupColor + ';">' + mapCount + ' Map' + (mapCount > 1 ? 's' : '') + '</strong> ';
-                            html += '<span style="color: #64748b; font-size: 0.9em;">(' + group.length + ' trading partner' + (group.length > 1 ? 's' : '') + ')</span>';
-                            html += '</div>';
-                            
-                            html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; padding-left: 20px;">';
-                            
-                            group.forEach(({ id: tpId, data: tpData }) => {
-                                // Create a card for each TP
-                                html += '<div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; transition: box-shadow 0.2s; hover: box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-                                
-                                // TP Header
-                                html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';
-                                html += '<strong style="color: #1e293b; font-size: 0.95em;">' + tpId + '</strong>';
-                                html += '</div>';
-                                
-                                // Map Details
-                                html += '<div style="margin-bottom: 8px;">';
-                                html += '<div style="color: #64748b; font-size: 0.8em; margin-bottom: 4px;">Maps:</div>';
-                                html += '<div style="display: flex; flex-wrap: wrap; gap: 4px;">';
-                                tpData.maps.forEach(mapName => {
-                                    const mapInfo = mapAnalysis.maps[mapName];
-                                    const docType = mapInfo ? mapInfo.docType : 'Unknown';
-                                    html += '<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.75em;" title="Document Type: ' + docType + '">';
-                                    html += mapName + ' <span style="color: #94a3b8;">(' + docType + ')</span>';
-                                    html += '</span>';
-                                });
-                                html += '</div>';
-                                html += '</div>';
-                                
-                                // Document Types
-                                const uniqueDocTypes = Array.from(tpData.docTypes).sort();
-                                if (uniqueDocTypes.length > 0) {
-                                    html += '<div>';
-                                    html += '<div style="color: #64748b; font-size: 0.8em; margin-bottom: 4px;">Document Types:</div>';
-                                    html += '<div style="display: flex; flex-wrap: wrap; gap: 4px;">';
-                                    uniqueDocTypes.forEach(docType => {
-                                        html += '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; font-weight: 500;">' + docType + '</span>';
-                                    });
-                                    html += '</div>';
-                                    html += '</div>';
-                                }
-                                
-                                html += '</div>';
-                            });
-                            
-                            html += '</div>';
-                            html += '</div>';
-                        });
+                    // Sort by TP ID then by Map Name
+                    tpMapRows.sort((a, b) => {
+                        if (a.tpId !== b.tpId) return a.tpId.localeCompare(b.tpId);
+                        return a.mapName.localeCompare(b.mapName);
+                    });
                     
-                    html += '</div>';
-                    html += '</div>';
+                    tpMapRows.forEach(({tpId, mapName, docType, direction}, index) => {
+                        const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                        const directionBadge = direction === 'Inbound'
+                            ? '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↓ Inbound</span>'
+                            : '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.85em;">↑ Outbound</span>';
+                        
+                        html += '<tr style="background: ' + rowBg + '; border-bottom: 1px solid #e5e7eb;" data-direction="' + direction.toLowerCase() + '">';
+                        html += '<td style="padding: 10px; font-weight: 500;">' + tpId + '</td>';
+                        html += '<td style="padding: 10px;">' + mapName + '</td>';
+                        html += '<td style="padding: 10px;">' + docType + '</td>';
+                        html += '<td style="padding: 10px; text-align: center;">' + directionBadge + '</td>';
+                        html += '</tr>';
+                    });
+                    
+                    html += '</tbody></table></div></div>';
                     
                     // Update the content div
                     const contentDiv = document.getElementById('mapAnalysisContent');
@@ -11767,9 +11814,14 @@ The data shows operational activity patterns across multiple dimensions...`;
                     
             }
             
-            // Initialize display
+            // Initialize display - trigger with checkbox checked by default
             setTimeout(function() { 
-                    updateMapAnalysisDisplay(false);
+                    const checkbox = document.getElementById('filterMapActiveTPsToggle');
+                    if (checkbox) {
+                        updateMapAnalysisDisplay(checkbox.checked);
+                    } else {
+                        updateMapAnalysisDisplay(false);
+                    }
                 }, 100);
             </scr` + `ipt>`;
         

@@ -136,6 +136,69 @@
             color: #2d3748;
         }
         
+        /* Partners List Modal Styles */
+        .partners-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1200;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .partners-modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .partners-modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 30px;
+            margin: 20px;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .partners-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #718096;
+            transition: color 0.2s ease;
+        }
+        
+        .partners-modal-close:hover {
+            color: #2d3748;
+        }
+        
+        .partners-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .partner-item {
+            padding: 8px 12px;
+            background: #f7fafc;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.9em;
+            color: #2d3748;
+        }
+        
         .modal h2 {
             color: #1a365d;
             margin-top: 0;
@@ -2512,21 +2575,25 @@ async function regenerateReportWithTPR(analysisData) {
         
         // Use the original setup - copy the entire export functions setup from analyzeFiles
         reportFrame.onload = function() {
-            const iframeWindow = reportFrame.contentWindow;
-            
-            // Pass data to iframe
-            iframeWindow.analyzerData = analysisData;
-            iframeWindow.docData = window.analyzer.docData;
-            
-            // Pass TPR data if available
-            if (window.tprData) {
-                iframeWindow.tprData = window.tprData;
-                iframeWindow.tprOriginalRecords = window.tprData.raw;
-                iframeWindow.activeTPs = window.analyzer.getActiveTPsFromData(analysisData);
+            try {
+                const iframeWindow = reportFrame.contentWindow;
+                
+                // Pass data to iframe (may fail due to cross-origin)
+                iframeWindow.analyzerData = analysisData;
+                iframeWindow.docData = window.analyzer.docData;
+                
+                // Pass TPR data if available
+                if (window.tprData) {
+                    iframeWindow.tprData = window.tprData;
+                    iframeWindow.tprOriginalRecords = window.tprData.raw;
+                    iframeWindow.activeTPs = window.analyzer.getActiveTPsFromData(analysisData);
+                }
+                
+                // This is a simplified version - the actual export functions will be set up
+                // when the iframe content loads with the embedded scripts
+            } catch (e) {
+                // Expected with srcdoc - data is embedded in HTML instead
             }
-            
-            // This is a simplified version - the actual export functions will be set up
-            // when the iframe content loads with the embedded scripts
         };
     } catch (error) {
         alert('Error updating report with TPR data: ' + error.message);
@@ -4448,6 +4515,65 @@ The data shows operational activity patterns across multiple dimensions...`;
             }
             return null;
         }
+        
+        // Function to show all partners in a modal
+        function showAllPartners(title, partners) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('partnersModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'partnersModal';
+                modal.className = 'partners-modal';
+                modal.style.cssText = 'display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1200; align-items: center; justify-content: center;';
+                modal.innerHTML = \`
+                    <div class="partners-modal-content" style="background: white; border-radius: 12px; max-width: 600px; max-height: 80vh; overflow-y: auto; padding: 30px; margin: 20px; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                        <button class="partners-modal-close" onclick="closePartnersModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #718096;">&times;</button>
+                        <h2 id="partnersModalTitle" style="color: #1a365d; margin-top: 0; margin-bottom: 20px;"></h2>
+                        <div id="partnersModalList" class="partners-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 20px;"></div>
+                    </div>
+                \`;
+                document.body.appendChild(modal);
+                
+                // Close modal when clicking outside
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closePartnersModal();
+                    }
+                });
+            }
+            
+            // Set title and partners list
+            document.getElementById('partnersModalTitle').textContent = title;
+            const listContainer = document.getElementById('partnersModalList');
+            listContainer.innerHTML = partners.map(partner => 
+                \`<div style="padding: 8px 12px; background: #f7fafc; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 0.9em; color: #2d3748;">\${escapeHtml(partner)}</div>\`
+            ).join('');
+            
+            // Show modal
+            modal.style.display = 'flex';
+        }
+        
+        // Function to close partners modal
+        function closePartnersModal() {
+            const modal = document.getElementById('partnersModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Store partners data globally for access from insights
+        window.partnersData = {
+            new: [],
+            inactive: []
+        };
         
         function showTab(tabName) {
             // Hide all tab contents
@@ -7825,6 +7951,12 @@ The data shows operational activity patterns across multiple dimensions...`;
             // New partners in last 3 months
             const newPartners = Array.from(last3TPs).filter(tp => !prev3TPs.has(tp));
             if (newPartners.length > 0) {
+                // Store partners data globally
+                window.partnersData.new = newPartners;
+                
+                // Generate a unique ID for this insight
+                const newPartnersId = 'new-partners-' + Math.random().toString(36).substr(2, 9);
+                
                 insights.push({
                     type: 'info',
                     category: 'partners',
@@ -7832,13 +7964,20 @@ The data shows operational activity patterns across multiple dimensions...`;
                     icon: '🤝',
                     title: 'New Trading Partners (3-Month)',
                     text: `${newPartners.length} new partner${newPartners.length > 1 ? 's' : ''} started trading in the last 3 months`,
-                    details: `New partners: ${newPartners.slice(0, 5).join(', ')}${newPartners.length > 5 ? ` and ${newPartners.length - 5} more` : ''} | Total active partners (3mo): ${last3TPs.size}`
+                    details: `New partners: ${newPartners.slice(0, 5).join(', ')}${newPartners.length > 5 ? ` and <a href="#" id="${newPartnersId}" class="partners-link" style="color: #3182ce; text-decoration: underline;">${newPartners.length - 5} more</a>` : ''} | Total active partners (3mo): ${last3TPs.size}`,
+                    partnersData: newPartners
                 });
             }
             
             // Lost partners from previous 3 months
             const lostPartners = Array.from(prev3TPs).filter(tp => !last3TPs.has(tp));
             if (lostPartners.length > 0) {
+                // Store partners data globally
+                window.partnersData.inactive = lostPartners;
+                
+                // Generate a unique ID for this insight
+                const inactivePartnersId = 'inactive-partners-' + Math.random().toString(36).substr(2, 9);
+                
                 insights.push({
                     type: 'warning',
                     category: 'partners',
@@ -7846,7 +7985,8 @@ The data shows operational activity patterns across multiple dimensions...`;
                     icon: '⚠️',
                     title: 'Inactive Trading Partners (3-Month)',
                     text: `${lostPartners.length} partner${lostPartners.length > 1 ? 's' : ''} had no activity in the last 3 months`,
-                    details: `Previously active partners: ${lostPartners.slice(0, 5).join(', ')}${lostPartners.length > 5 ? ` and ${lostPartners.length - 5} more` : ''} | Consider re-engagement strategies`
+                    details: `Previously active partners: ${lostPartners.slice(0, 5).join(', ')}${lostPartners.length > 5 ? ` and <a href="#" id="${inactivePartnersId}" class="partners-link" style="color: #3182ce; text-decoration: underline;">${lostPartners.length - 5} more</a>` : ''} | Consider re-engagement strategies`,
+                    partnersData: lostPartners
                 });
             }
         }
@@ -7997,6 +8137,42 @@ The data shows operational activity patterns across multiple dimensions...`;
         html += `
             </div>
         </div>`;
+        
+        // Add script to handle partners data
+        html += `<scr${'ipt>'}
+        // Store insights data for partner links
+        (function() {
+            const insightsData = ${this.safeStringify(insights)};
+            
+            // Wait for DOM to be ready
+            setTimeout(function() {
+                // Find all insights with partnersData
+                insightsData.forEach(function(insight) {
+                    if (insight.partnersData && insight.details) {
+                        // Find the link in this insight's details
+                        const links = document.querySelectorAll('.partners-link');
+                        links.forEach(function(link) {
+                            if (!link.dataset.initialized) {
+                                link.dataset.initialized = 'true';
+                                link.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    // Find the corresponding insight
+                                    const linkId = link.id;
+                                    const matchingInsight = insightsData.find(function(ins) {
+                                        return ins.details && ins.details.includes(linkId);
+                                    });
+                                    
+                                    if (matchingInsight && matchingInsight.partnersData) {
+                                        showAllPartners(matchingInsight.title, matchingInsight.partnersData);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }, 100);
+        })();
+        </scr${'ipt>'}`;
         
         return html;
     }
@@ -17210,21 +17386,29 @@ async function analyzeFiles() {
         
         // Inject export functions after iframe loads
         reportFrame.onload = function() {
-            const iframeWindow = reportFrame.contentWindow;
-            
-            // Pass data to iframe
-            iframeWindow.analyzerData = analysisData;
-            iframeWindow.docData = analyzer.docData;
-            
-            // Pass TPR data if available
-            if (window.tprData) {
-                iframeWindow.tprData = window.tprData;
-                iframeWindow.tprOriginalRecords = window.tprData.raw;
-                iframeWindow.activeTPs = analyzer.getActiveTPsFromData(analysisData);
+            try {
+                const iframeWindow = reportFrame.contentWindow;
+                
+                // Try to pass data to iframe (may fail due to cross-origin)
+                // Wrap in try-catch to handle srcdoc security restrictions
+                iframeWindow.analyzerData = analysisData;
+                iframeWindow.docData = analyzer.docData;
+            } catch (e) {
+                // Expected with srcdoc - data is embedded in HTML instead
             }
             
-            // Define export functions in iframe context
-            iframeWindow.exportTableData = function(tableId, format) {
+            try {
+                const iframeWindow = reportFrame.contentWindow;
+                
+                // Pass TPR data if available
+                if (window.tprData) {
+                    iframeWindow.tprData = window.tprData;
+                    iframeWindow.tprOriginalRecords = window.tprData.raw;
+                    iframeWindow.activeTPs = analyzer.getActiveTPsFromData(analysisData);
+                }
+                
+                // Define export functions in iframe context
+                iframeWindow.exportTableData = function(tableId, format) {
                 let data;
                 let filename;
                 const date = new Date().toISOString().split('T')[0];
@@ -17695,6 +17879,9 @@ async function analyzeFiles() {
                 
                 return data;
             };
+            } catch (e) {
+                // Expected with srcdoc - export functions may not work due to cross-origin restrictions
+            }
         };
         
         // Show maximize and export buttons, and minimize analyzer section
@@ -18040,6 +18227,56 @@ function sortTable(table, column) {
         }
     });
 }
+
+// Function to show all partners in a modal
+function showAllPartners(title, partners) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('partnersModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'partnersModal';
+        modal.className = 'partners-modal';
+        modal.innerHTML = `
+            <div class="partners-modal-content">
+                <button class="partners-modal-close" onclick="closePartnersModal()">&times;</button>
+                <h2 id="partnersModalTitle"></h2>
+                <div id="partnersModalList" class="partners-list"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closePartnersModal();
+            }
+        });
+    }
+    
+    // Set title and partners list
+    document.getElementById('partnersModalTitle').textContent = title;
+    const listContainer = document.getElementById('partnersModalList');
+    listContainer.innerHTML = partners.map(partner => 
+        `<div class="partner-item">${escapeHtml(partner)}</div>`
+    ).join('');
+    
+    // Show modal
+    modal.classList.add('show');
+}
+
+// Function to close partners modal
+function closePartnersModal() {
+    const modal = document.getElementById('partnersModal');
+    if (modal) {
+        modal.classList.remove('show');
+    }
+}
+
+// Store partners data globally for access from insights
+window.partnersData = {
+    new: [],
+    inactive: []
+};
 </script>
 </body>
 </html>

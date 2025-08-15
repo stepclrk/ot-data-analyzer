@@ -8294,7 +8294,7 @@ The data shows operational activity patterns across multiple dimensions...`;
             </h3>`;
         
         // Document Types by TP
-        html += this.generateDocTypesAnalysis(tpAnalysis.doc_types_by_tp);
+        html += this.generateDocTypesAnalysis(tpAnalysis.doc_types_by_tp, data);
         
         html += `</div>`; // End Document Analysis Section
         
@@ -14475,7 +14475,7 @@ The data shows operational activity patterns across multiple dimensions...`;
         return html;
     }
 
-    generateDocTypesAnalysis(docTypesByTP) {
+    generateDocTypesAnalysis(docTypesByTP, data) {
         // Check if we have data
         if (!docTypesByTP || Object.keys(docTypesByTP).length === 0) {
             return `<div class="tp-chart-container">
@@ -14496,13 +14496,92 @@ The data shows operational activity patterns across multiple dimensions...`;
             </div>`;
         }
         
+        // Extract document types with direction information from raw data
+        const docTypesWithDirection = {};
+        
+        // Get direction data from tp_data which contains the raw TP_Doc_Summary sheets
+        if (data && data.tp_data) {
+            // Iterate through all periods
+            Object.entries(data.tp_data).forEach(([period, periodData]) => {
+                // Look for TP_Doc_Summary sheet
+                Object.entries(periodData).forEach(([sheetName, sheetRows]) => {
+                    if (sheetName === 'TP_Doc_Summary' && Array.isArray(sheetRows)) {
+                        sheetRows.forEach(row => {
+                            // Extract TP ID and Document Type
+                            const tpId = row['TP ID'] || row['TP-ID'] || row['TP_ID'] || row['Trading Partner'] || row['TP'];
+                            const docType = row['DOCS'] || row['DOC'] || row['Document Type'] || row['Doc Type'];
+                            
+                            if (tpId && docType) {
+                                const tpIdStr = String(tpId).trim();
+                                const docTypeStr = String(docType).trim();
+                                
+                                if (!docTypesWithDirection[tpIdStr]) {
+                                    docTypesWithDirection[tpIdStr] = {};
+                                }
+                                if (!docTypesWithDirection[tpIdStr][docTypeStr]) {
+                                    docTypesWithDirection[tpIdStr][docTypeStr] = {
+                                        total: 0,
+                                        inbound: 0,
+                                        outbound: 0
+                                    };
+                                }
+                                
+                                // Extract direction counts - look for various column naming patterns
+                                let inbDocs = 0;
+                                let outDocs = 0;
+                                let totalDocs = 0;
+                                
+                                for (const [key, value] of Object.entries(row)) {
+                                    const keyUpper = String(key).trim().toUpperCase();
+                                    
+                                    // Inbound columns
+                                    if (keyUpper === 'INB-DOC' || keyUpper === 'INBOUND DOCS' || keyUpper === 'INB DOCS' ||
+                                        keyUpper === 'INBOUND DOC' || keyUpper === 'INB_DOCS' || keyUpper === 'INBOUND') {
+                                        inbDocs = parseFloat(value) || 0;
+                                    }
+                                    // Outbound columns  
+                                    else if (keyUpper === 'OUTB-DOC' || keyUpper === 'OUTBOUND DOCS' || keyUpper === 'OUT DOCS' ||
+                                             keyUpper === 'OUTBOUND DOC' || keyUpper === 'OUT-DOC' || keyUpper === 'OUT_DOCS' || 
+                                             keyUpper === 'OUTBOUND' || keyUpper === 'OUTB_DOC') {
+                                        outDocs = parseFloat(value) || 0;
+                                    }
+                                    // Total columns
+                                    else if (keyUpper === 'TOTAL-DOC' || keyUpper === 'TOTAL DOCS' || keyUpper === 'TTL DOCS' ||
+                                             keyUpper === 'TOTAL DOC' || keyUpper === 'TTL-DOC' || keyUpper === 'TOTAL_DOCS' ||
+                                             keyUpper === 'TOTAL') {
+                                        totalDocs = parseFloat(value) || 0;
+                                    }
+                                }
+                                
+                                // Add to totals
+                                docTypesWithDirection[tpIdStr][docTypeStr].inbound += inbDocs;
+                                docTypesWithDirection[tpIdStr][docTypeStr].outbound += outDocs;
+                                docTypesWithDirection[tpIdStr][docTypeStr].total += totalDocs || (inbDocs + outDocs);
+                            }
+                        });
+                    }
+                });
+            });
+        }
+        
+        // Debug: Log what we found
+        const hasDirectionData = Object.keys(docTypesWithDirection).length > 0;
+        console.log('Direction data extracted:', docTypesWithDirection);
+        console.log('Has direction data:', hasDirectionData);
+        
+        // Store direction data in window for filtering
+        if (typeof window !== 'undefined') {
+            window.tpDocTypesDirectionData = docTypesWithDirection;
+        }
+        
         // Prepare data for display
         const tpsWithDocTypes = Object.entries(docTypesByTP)
             .filter(([_, types]) => types && types.length > 0)
             .map(([tpId, types]) => ({
                 tpId,
                 types: types,
-                typeCount: types.length
+                typeCount: types.length,
+                directionData: docTypesWithDirection[tpId] || {}
             }))
             .sort((a, b) => b.typeCount - a.typeCount);
         
@@ -14525,13 +14604,40 @@ The data shows operational activity patterns across multiple dimensions...`;
                     <span class="info-icon">i
                         <div class="tooltip">
                             This table shows all document types each trading partner processes.
-                            It provides a complete view of the nature of your relationships with each partner.
-                            Document counts are aggregated across all available periods.
-                            Use this to identify specialization patterns among partners.
+                            Filter by direction to see inbound vs outbound document types.
+                            Color coding: Blue for inbound-heavy, Orange for outbound-heavy, Gray for balanced.
+                            Click on "+n more" to see all document types for that partner.
                         </div>
                     </span>
                 </div>
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <!-- Direction Filter Buttons -->
+                    <div style="display: flex; gap: 4px; background: #f3f4f6; padding: 4px; border-radius: 8px;">
+                        <button id="doctypes-dir-both" class="doctypes-direction-btn" data-direction="both" 
+                            style="padding: 6px 12px; background: #3b82f6; color: white; border: none; 
+                            border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;"
+                            onclick="setDocTypesDirection('both')">
+                            📊 All
+                        </button>
+                        <button id="doctypes-dir-inbound" class="doctypes-direction-btn" data-direction="inbound" 
+                            style="padding: 6px 12px; background: transparent; color: #6b7280; border: none; 
+                            border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;"
+                            onclick="setDocTypesDirection('inbound')">
+                            📥 Inbound
+                        </button>
+                        <button id="doctypes-dir-outbound" class="doctypes-direction-btn" data-direction="outbound" 
+                            style="padding: 6px 12px; background: transparent; color: #6b7280; border: none; 
+                            border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;"
+                            onclick="setDocTypesDirection('outbound')">
+                            📤 Outbound
+                        </button>
+                        <button id="doctypes-dir-bidirectional" class="doctypes-direction-btn" data-direction="bidirectional" 
+                            style="padding: 6px 12px; background: transparent; color: #6b7280; border: none; 
+                            border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;"
+                            onclick="setDocTypesDirection('bidirectional')">
+                            🔄 Bi-directional
+                        </button>
+                    </div>
                     <button onclick="exportTableData('tp-doc-types', 'json')" style="
                         background: #3182ce;
                         color: white;
@@ -14615,20 +14721,44 @@ The data shows operational activity patterns across multiple dimensions...`;
         
         // Show all TPs
         tpsWithDocTypes.forEach((tp, i) => {
+            // Generate unique ID for this TP's document types
+            const tpDocTypesId = 'tp-doctypes-' + tp.tpId.replace(/[^a-zA-Z0-9]/g, '_') + '_' + Math.random().toString(36).substr(2, 9);
+            
+            // Add color coding based on direction
+            const getDocTypeColor = (docType) => {
+                if (tp.directionData && tp.directionData[docType]) {
+                    const data = tp.directionData[docType];
+                    const hasInbound = data.inbound > 0;
+                    const hasOutbound = data.outbound > 0;
+                    
+                    if (hasInbound && hasOutbound) {
+                        return 'background: #f3f4f6; border-color: #d1d5db;'; // Gray for bi-directional
+                    } else if (hasInbound) {
+                        return 'background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-color: #3b82f6;'; // Blue for inbound only
+                    } else if (hasOutbound) {
+                        return 'background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%); border-color: #f97316;'; // Orange for outbound only
+                    } else {
+                        return 'background: #f3f4f6; border-color: #d1d5db;'; // Gray for no data
+                    }
+                }
+                return 'background: #f3f4f6; border-color: #d1d5db;';
+            };
+            
             const docTypesHtml = tp.types
                 .slice(0, 5)
-                .map(dt => `<span class="doc-type-badge">${dt}</span>`)
+                .map(dt => `<span class="doc-type-badge" style="${getDocTypeColor(dt)}">${dt}</span>`)
                 .join('');
             
             const moreTypes = tp.types.length > 5 ? 
-                `<span class="doc-type-badge">+${tp.types.length - 5} more</span>` : '';
+                `<a href="#" onclick="showAllDocTypes('${tp.tpId}', '${tpDocTypesId}'); return false;" style="color: #3182ce; text-decoration: underline; font-weight: 500;">+${tp.types.length - 5} more</a>` : '';
             
             const rowStyle = i % 2 === 1 ? 'style="background: #f7fafc;"' : '';
             
+            // Store the full types list in a data attribute
             html += `
-                <tr ${rowStyle}>
+                <tr ${rowStyle} data-tp-id="${tp.tpId}" data-all-types='${this.safeStringify(tp.types)}' data-direction-data='${this.safeStringify(tp.directionData)}'>
                     <td class="tp-id-cell" data-id="${tp.tpId}"><strong>${tp.tpId}</strong></td>
-                    <td>${docTypesHtml}${moreTypes}</td>
+                    <td id="doctypes-cell-${tpDocTypesId}">${docTypesHtml}${moreTypes}</td>
                     <td>${tp.typeCount}</td>
                 </tr>`;
         });
@@ -14641,6 +14771,260 @@ The data shows operational activity patterns across multiple dimensions...`;
                 <strong>Total Trading Partners with Document Types:</strong> ${tpsWithDocTypes.length}
             </div>
         </div>`;
+        
+        // Add script for direction filtering and popup
+        html += `<scr${'ipt>'}
+        // Store document types data for filtering
+        window.docTypesTPData = {
+            originalData: ${this.safeStringify(tpsWithDocTypes)},
+            directionData: ${this.safeStringify(docTypesWithDirection)},
+            currentDirection: 'both'
+        };
+        
+        // Function to show all document types in a popup
+        window.showAllDocTypes = function(tpId, elementId) {
+            // Get the row element to access the stored data
+            const row = document.querySelector(\`tr[data-tp-id="\${tpId}"]\`);
+            if (!row) return;
+            
+            const allTypes = JSON.parse(row.getAttribute('data-all-types') || '[]');
+            const directionData = JSON.parse(row.getAttribute('data-direction-data') || '{}');
+            
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('docTypesModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'docTypesModal';
+                modal.className = 'partners-modal';
+                modal.style.cssText = 'display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1200; align-items: center; justify-content: center;';
+                modal.innerHTML = \`
+                    <div class="partners-modal-content" style="background: white; border-radius: 12px; max-width: 700px; max-height: 80vh; overflow-y: auto; padding: 30px; margin: 20px; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                        <button class="partners-modal-close" onclick="closeDocTypesModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #718096;">&times;</button>
+                        <h2 id="docTypesModalTitle" style="color: #1a365d; margin-top: 0; margin-bottom: 20px;"></h2>
+                        <div id="docTypesModalList" class="doc-types-modal-list"></div>
+                    </div>
+                \`;
+                document.body.appendChild(modal);
+                
+                // Close modal when clicking outside
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closeDocTypesModal();
+                    }
+                });
+            }
+            
+            // Set title
+            document.getElementById('docTypesModalTitle').textContent = 'All Document Types for ' + tpId;
+            
+            // Create document type badges with color coding
+            const listContainer = document.getElementById('docTypesModalList');
+            listContainer.innerHTML = '';
+            
+            // Add legend
+            const legend = document.createElement('div');
+            legend.style.cssText = 'margin-bottom: 20px; padding: 10px; background: #f7fafc; border-radius: 8px;';
+            legend.innerHTML = \`
+                <div style="font-weight: 600; margin-bottom: 8px;">Direction Color Legend:</div>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <span style="display: flex; align-items: center; gap: 5px;">
+                        <span style="width: 20px; height: 20px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border: 1px solid #3b82f6; border-radius: 4px;"></span>
+                        Inbound
+                    </span>
+                    <span style="display: flex; align-items: center; gap: 5px;">
+                        <span style="width: 20px; height: 20px; background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%); border: 1px solid #f97316; border-radius: 4px;"></span>
+                        Outbound
+                    </span>
+                    <span style="display: flex; align-items: center; gap: 5px;">
+                        <span style="width: 20px; height: 20px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;"></span>
+                        Bi-directional
+                    </span>
+                </div>
+            \`;
+            listContainer.appendChild(legend);
+            
+            // Create grid of document types
+            const grid = document.createElement('div');
+            grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;';
+            
+            allTypes.forEach(docType => {
+                const badge = document.createElement('div');
+                badge.style.cssText = 'padding: 8px 12px; border-radius: 6px; border: 1px solid; font-size: 0.9em; text-align: center;';
+                
+                // Apply color coding based on direction
+                if (directionData && directionData[docType]) {
+                    const data = directionData[docType];
+                    const hasInbound = data.inbound > 0;
+                    const hasOutbound = data.outbound > 0;
+                    
+                    if (hasInbound && hasOutbound) {
+                        // Bi-directional - Gray
+                        badge.style.background = '#f3f4f6';
+                        badge.style.borderColor = '#d1d5db';
+                        badge.style.color = '#374151';
+                    } else if (hasInbound) {
+                        // Inbound only - Blue
+                        badge.style.background = 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)';
+                        badge.style.borderColor = '#3b82f6';
+                        badge.style.color = '#1e40af';
+                    } else if (hasOutbound) {
+                        // Outbound only - Orange
+                        badge.style.background = 'linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)';
+                        badge.style.borderColor = '#f97316';
+                        badge.style.color = '#9a3412';
+                    } else {
+                        // No data - Gray
+                        badge.style.background = '#f3f4f6';
+                        badge.style.borderColor = '#d1d5db';
+                        badge.style.color = '#374151';
+                    }
+                    
+                    // Add tooltip with counts
+                    badge.title = \`Inbound: \${data.inbound || 0}, Outbound: \${data.outbound || 0}\`;
+                } else {
+                    badge.style.background = '#f3f4f6';
+                    badge.style.borderColor = '#d1d5db';
+                    badge.style.color = '#374151';
+                }
+                
+                badge.textContent = docType;
+                grid.appendChild(badge);
+            });
+            
+            listContainer.appendChild(grid);
+            
+            // Show modal
+            modal.style.display = 'flex';
+        };
+        
+        // Function to close the document types modal
+        window.closeDocTypesModal = function() {
+            const modal = document.getElementById('docTypesModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        };
+        
+        // Function to update document types table based on direction
+        window.setDocTypesDirection = function(direction) {
+            // Update button states
+            const buttons = document.querySelectorAll('.doctypes-direction-btn');
+            buttons.forEach(btn => {
+                if (btn.dataset.direction === direction) {
+                    btn.style.background = '#3b82f6';
+                    btn.style.color = 'white';
+                } else {
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#6b7280';
+                }
+            });
+            
+            // Store current direction
+            window.docTypesTPData.currentDirection = direction;
+            
+            // Filter data based on direction
+            const filteredData = window.docTypesTPData.originalData.map(tp => {
+                let filteredTypes = [];
+                
+                if (direction === 'both') {
+                    filteredTypes = tp.types;
+                } else {
+                    // Filter types based on direction
+                    tp.types.forEach(docType => {
+                        if (tp.directionData && tp.directionData[docType]) {
+                            const data = tp.directionData[docType];
+                            const hasInbound = data.inbound > 0;
+                            const hasOutbound = data.outbound > 0;
+                            
+                            if (direction === 'inbound' && hasInbound && !hasOutbound) {
+                                // Only inbound
+                                filteredTypes.push(docType);
+                            } else if (direction === 'outbound' && hasOutbound && !hasInbound) {
+                                // Only outbound
+                                filteredTypes.push(docType);
+                            } else if (direction === 'bidirectional' && hasInbound && hasOutbound) {
+                                // Both inbound and outbound (bi-directional)
+                                filteredTypes.push(docType);
+                            }
+                        }
+                    });
+                }
+                
+                return {
+                    ...tp,
+                    filteredTypes: filteredTypes,
+                    filteredTypeCount: filteredTypes.length
+                };
+            }).filter(tp => tp.filteredTypeCount > 0);
+            
+            // Update table
+            const tbody = document.querySelector('#tp-doc-types-table tbody');
+            if (tbody) {
+                tbody.innerHTML = '';
+                
+                filteredData.forEach((tp, i) => {
+                    const tpDocTypesId = 'tp-doctypes-' + tp.tpId.replace(/[^a-zA-Z0-9]/g, '_') + '_' + Math.random().toString(36).substr(2, 9);
+                    
+                    const getDocTypeColor = (docType) => {
+                        if (tp.directionData && tp.directionData[docType]) {
+                            const data = tp.directionData[docType];
+                            const hasInbound = data.inbound > 0;
+                            const hasOutbound = data.outbound > 0;
+                            
+                            if (hasInbound && hasOutbound) {
+                                return 'background: #f3f4f6; border-color: #d1d5db;'; // Gray for bi-directional
+                            } else if (hasInbound) {
+                                return 'background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-color: #3b82f6;'; // Blue for inbound only
+                            } else if (hasOutbound) {
+                                return 'background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%); border-color: #f97316;'; // Orange for outbound only
+                            } else {
+                                return 'background: #f3f4f6; border-color: #d1d5db;'; // Gray for no data
+                            }
+                        }
+                        return 'background: #f3f4f6; border-color: #d1d5db;';
+                    };
+                    
+                    const docTypesHtml = tp.filteredTypes
+                        .slice(0, 5)
+                        .map(dt => \`<span class="doc-type-badge" style="\${getDocTypeColor(dt)}">\${dt}</span>\`)
+                        .join('');
+                    
+                    const moreTypes = tp.filteredTypes.length > 5 ? 
+                        \`<a href="#" onclick="showAllDocTypes('\${tp.tpId}', '\${tpDocTypesId}'); return false;" style="color: #3182ce; text-decoration: underline; font-weight: 500;">+\${tp.filteredTypes.length - 5} more</a>\` : '';
+                    
+                    const rowStyle = i % 2 === 1 ? 'background: #f7fafc;' : '';
+                    
+                    const row = document.createElement('tr');
+                    row.style = rowStyle;
+                    row.setAttribute('data-tp-id', tp.tpId);
+                    row.setAttribute('data-all-types', JSON.stringify(tp.filteredTypes));
+                    row.setAttribute('data-direction-data', JSON.stringify(tp.directionData));
+                    
+                    row.innerHTML = \`
+                        <td class="tp-id-cell" data-id="\${tp.tpId}"><strong>\${tp.tpId}</strong></td>
+                        <td id="doctypes-cell-\${tpDocTypesId}">\${docTypesHtml}\${moreTypes}</td>
+                        <td>\${tp.filteredTypeCount}</td>
+                    \`;
+                    
+                    tbody.appendChild(row);
+                });
+                
+                // Update info box
+                const infoBox = document.querySelector('.tp-chart-container .info-box');
+                if (infoBox) {
+                    let filterText = '';
+                    if (direction === 'both') {
+                        filterText = '';
+                    } else if (direction === 'bidirectional') {
+                        filterText = 'Bi-directional ';
+                    } else {
+                        filterText = direction.charAt(0).toUpperCase() + direction.slice(1) + '-only ';
+                    }
+                    infoBox.innerHTML = \`<strong>Total Trading Partners with \${filterText}Document Types:</strong> \${filteredData.length}\`;
+                }
+            }
+        };
+        </scr${'ipt>'}`;
         
         return html;
     }
@@ -15702,6 +16086,10 @@ The data shows operational activity patterns across multiple dimensions...`;
             document_types: new Set(),
             tp_document_counts: {},
             type_trends: {},
+            type_trends_by_direction: {
+                inbound: {},
+                outbound: {}
+            },
             monthly_totals: {},
             total_documents: 0
         };
@@ -15710,6 +16098,26 @@ The data shows operational activity patterns across multiple dimensions...`;
         for (const period of analysis.periods) {
             const periodData = docData[period];
             let monthlyTotal = 0;
+            
+            // Initialize direction-based tracking for this period
+            const directionCounts = {
+                inbound: {},
+                outbound: {}
+            };
+            
+            // Process TP type matrix to get direction data
+            if (periodData.tp_type_matrix) {
+                for (const [tpId, typeData] of Object.entries(periodData.tp_type_matrix)) {
+                    for (const [docType, counts] of Object.entries(typeData)) {
+                        if (!directionCounts.inbound[docType]) {
+                            directionCounts.inbound[docType] = 0;
+                            directionCounts.outbound[docType] = 0;
+                        }
+                        directionCounts.inbound[docType] += counts.inbound || 0;
+                        directionCounts.outbound[docType] += counts.outbound || 0;
+                    }
+                }
+            }
             
             // Document types
             for (const [docType, data] of Object.entries(periodData.documents_by_type)) {
@@ -15723,9 +16131,31 @@ The data shows operational activity patterns across multiple dimensions...`;
                     };
                 }
                 
+                if (!analysis.type_trends_by_direction.inbound[docType]) {
+                    analysis.type_trends_by_direction.inbound[docType] = {
+                        periods: [],
+                        counts: []
+                    };
+                }
+                
+                if (!analysis.type_trends_by_direction.outbound[docType]) {
+                    analysis.type_trends_by_direction.outbound[docType] = {
+                        periods: [],
+                        counts: []
+                    };
+                }
+                
                 analysis.type_trends[docType].periods.push(period);
                 analysis.type_trends[docType].counts.push(data.total_docs);
                 analysis.type_trends[docType].kcs.push(data.total_kcs);
+                
+                // Add direction-based counts
+                analysis.type_trends_by_direction.inbound[docType].periods.push(period);
+                analysis.type_trends_by_direction.inbound[docType].counts.push(directionCounts.inbound[docType] || 0);
+                
+                analysis.type_trends_by_direction.outbound[docType].periods.push(period);
+                analysis.type_trends_by_direction.outbound[docType].counts.push(directionCounts.outbound[docType] || 0);
+                
                 monthlyTotal += data.total_docs;
                 analysis.total_documents += data.total_docs;
             }
@@ -15891,13 +16321,36 @@ The data shows operational activity patterns across multiple dimensions...`;
                     <div class="tooltip">
                         Document Type Distribution visualizes the relative volume of each document type.
                         The bar chart shows what percentage of total documents each type represents.
+                        Filter by direction to see inbound vs outbound document distribution.
                         This helps understand your document mix and identify dominant types.
-                        Use this to ensure balanced processing across different document categories.
                     </div>
                 </span>
             </h4>
-            <p style="color: #718096; font-size: 0.9em; margin-bottom: 20px;">Overview of document types processed across all periods</p>
-            <div class="doc-type-grid">`;
+            <p style="color: #718096; font-size: 0.9em; margin-bottom: 10px;">Overview of document types processed across all periods</p>
+            
+            <!-- Direction Filter Buttons -->
+            <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                <button id="doc-dist-both" class="doc-direction-btn" data-direction="both" 
+                    style="padding: 6px 16px; background: #3b82f6; color: white; border: 1px solid #3b82f6; 
+                    border-radius: 6px; cursor: pointer; font-size: 0.9em; transition: all 0.2s;"
+                    onclick="setDocDistributionDirection('both')">
+                    📊 Both
+                </button>
+                <button id="doc-dist-inbound" class="doc-direction-btn" data-direction="inbound" 
+                    style="padding: 6px 16px; background: transparent; color: #6b7280; border: 1px solid #d1d5db; 
+                    border-radius: 6px; cursor: pointer; font-size: 0.9em; transition: all 0.2s;"
+                    onclick="setDocDistributionDirection('inbound')">
+                    📥 Inbound
+                </button>
+                <button id="doc-dist-outbound" class="doc-direction-btn" data-direction="outbound" 
+                    style="padding: 6px 16px; background: transparent; color: #6b7280; border: 1px solid #d1d5db; 
+                    border-radius: 6px; cursor: pointer; font-size: 0.9em; transition: all 0.2s;"
+                    onclick="setDocDistributionDirection('outbound')">
+                    📤 Outbound
+                </button>
+            </div>
+            
+            <div id="docTypeGridContainer" class="doc-type-grid">`;
         
         // Calculate total for each document type
         const typeTotals = {};
@@ -15931,21 +16384,124 @@ The data shows operational activity patterns across multiple dimensions...`;
             <!-- Trend analysis note removed as requested -->
         </div>`;
         
+        // Add script to handle direction filtering
+        html += `<scr${'ipt>'}
+        // Store document type distribution data
+        window.docDistributionData = {
+            type_trends: ${this.safeStringify(docAnalysis.type_trends)},
+            type_trends_by_direction: ${this.safeStringify(docAnalysis.type_trends_by_direction || {})},
+            currentDirection: 'both'
+        };
+        
+        // Function to update document distribution based on direction
+        function setDocDistributionDirection(direction) {
+            // Update button states
+            const buttons = document.querySelectorAll('.doc-direction-btn');
+            buttons.forEach(btn => {
+                if (btn.dataset.direction === direction) {
+                    btn.style.background = '#3b82f6';
+                    btn.style.color = 'white';
+                    btn.style.borderColor = '#3b82f6';
+                } else {
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#6b7280';
+                    btn.style.borderColor = '#d1d5db';
+                }
+            });
+            
+            // Store current direction
+            window.docDistributionData.currentDirection = direction;
+            
+            // Calculate totals based on direction
+            const typeTotals = {};
+            
+            if (direction === 'both') {
+                // Use original type_trends
+                for (const [docType, trendData] of Object.entries(window.docDistributionData.type_trends)) {
+                    typeTotals[docType] = trendData.counts.reduce((sum, count) => sum + count, 0);
+                }
+            } else {
+                // Use direction-specific data
+                const directionData = window.docDistributionData.type_trends_by_direction[direction];
+                if (directionData) {
+                    for (const [docType, trendData] of Object.entries(directionData)) {
+                        typeTotals[docType] = trendData.counts.reduce((sum, count) => sum + count, 0);
+                    }
+                }
+            }
+            
+            // Sort by total count
+            const sortedTypes = Object.entries(typeTotals)
+                .sort(([, a], [, b]) => b - a);
+            
+            const totalDocs = Object.values(typeTotals).reduce((sum, count) => sum + count, 0);
+            
+            // Update the grid container
+            const container = document.getElementById('docTypeGridContainer');
+            if (container) {
+                container.innerHTML = '';
+                
+                // Create document type cards
+                sortedTypes.forEach(([docType, count]) => {
+                    const percentage = totalDocs > 0 ? (count / totalDocs * 100).toFixed(1) : '0.0';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'doc-type-card';
+                    card.innerHTML = \`
+                        <div class="doc-type-name">\${docType}</div>
+                        <div class="doc-type-count">\${count.toLocaleString()}</div>
+                        <div class="doc-type-percentage">\${percentage}%</div>
+                    \`;
+                    container.appendChild(card);
+                });
+                
+                // Add a note if no data available
+                if (sortedTypes.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #718096; grid-column: 1/-1;">No data available for ' + direction + ' documents</p>';
+                }
+            }
+        }
+        </scr${'ipt>'}`;
+        
         return html;
     }
 
     generateDocKCTrendsChart(docAnalysis, data) {
         
         let html = `<div class="chart-container" style="background: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-            <h4 style="color: #2d3748; margin-bottom: 20px;">📊 Document Count vs KC Count Trends
-                <span class="info-icon">i
-                    <div class="tooltip">
-                        This chart shows the total document count and KC count trends over time.
-                        The dual-axis chart helps visualize the relationship between document volume and KC processing.
-                        Use this to identify efficiency trends and processing patterns across periods.
-                    </div>
-                </span>
-            </h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h4 style="color: #2d3748; margin: 0;">📊 Document Count vs KC Count Trends
+                    <span class="info-icon">i
+                        <div class="tooltip">
+                            This chart shows the total document count and KC count trends over time.
+                            Filter by direction to see inbound vs outbound trends separately.
+                            The dual-axis chart helps visualize the relationship between document volume and KC processing.
+                            Use this to identify efficiency trends and processing patterns.
+                        </div>
+                    </span>
+                </h4>
+                <!-- Direction Filter Buttons -->
+                <div style="display: flex; gap: 4px; background: #f3f4f6; padding: 4px; border-radius: 8px;">
+                    <button id="trends-dir-both" class="trends-direction-btn" data-direction="both" 
+                        style="padding: 6px 12px; background: #3b82f6; color: white; border: none; 
+                        border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;"
+                        onclick="setTrendsDirection('both')">
+                        📊 Both
+                    </button>
+                    <button id="trends-dir-inbound" class="trends-direction-btn" data-direction="inbound" 
+                        style="padding: 6px 12px; background: transparent; color: #6b7280; border: none; 
+                        border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;"
+                        onclick="setTrendsDirection('inbound')">
+                        📥 Inbound
+                    </button>
+                    <button id="trends-dir-outbound" class="trends-direction-btn" data-direction="outbound" 
+                        style="padding: 6px 12px; background: transparent; color: #6b7280; border: none; 
+                        border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;"
+                        onclick="setTrendsDirection('outbound')">
+                        📤 Outbound
+                    </button>
+                </div>
+            </div>
             <div style="position: relative; height: 400px;">
                 <canvas id="docKCTrendsChart"></canvas>
             </div>
@@ -16133,6 +16689,110 @@ The data shows operational activity patterns across multiple dimensions...`;
                 } catch (error) {
                 }
             }, 100);
+            
+            // Store trends data for direction filtering
+            window.trendsChartData = {
+                periods: ${this.safeStringify(docAnalysis.periods)},
+                periodLabels: ${this.safeStringify(periodLabels)},
+                type_trends_by_direction: ${this.safeStringify(docAnalysis.type_trends_by_direction || {})},
+                docData: ${this.safeStringify(this.docData)},
+                currentDirection: 'both',
+                chart: null
+            };
+            
+            // Function to update trends chart based on direction
+            window.setTrendsDirection = function(direction) {
+                // Update button states
+                const buttons = document.querySelectorAll('.trends-direction-btn');
+                buttons.forEach(btn => {
+                    if (btn.dataset.direction === direction) {
+                        btn.style.background = '#3b82f6';
+                        btn.style.color = 'white';
+                    } else {
+                        btn.style.background = 'transparent';
+                        btn.style.color = '#6b7280';
+                    }
+                });
+                
+                // Store current direction
+                window.trendsChartData.currentDirection = direction;
+                
+                // Calculate counts based on direction
+                const docCounts = {};
+                const kcCounts = {};
+                
+                window.trendsChartData.periods.forEach(period => {
+                    docCounts[period] = 0;
+                    kcCounts[period] = 0;
+                });
+                
+                if (direction === 'both') {
+                    // Use original data
+                    ${this.safeStringify(docAnalysis.periods)}.forEach((period, idx) => {
+                        docCounts[period] = ${this.safeStringify(docCountData)}[idx] || 0;
+                        kcCounts[period] = ${this.safeStringify(kcCountData)}[idx] || 0;
+                    });
+                } else {
+                    // Calculate from docData based on direction
+                    if (window.trendsChartData.docData) {
+                        window.trendsChartData.periods.forEach(period => {
+                            const periodData = window.trendsChartData.docData[period];
+                            if (periodData && periodData.tp_type_matrix) {
+                                Object.values(periodData.tp_type_matrix).forEach(typeData => {
+                                    Object.values(typeData).forEach(counts => {
+                                        if (direction === 'inbound') {
+                                            docCounts[period] += counts.inbound || 0;
+                                        } else if (direction === 'outbound') {
+                                            docCounts[period] += counts.outbound || 0;
+                                        }
+                                    });
+                                });
+                            }
+                            if (periodData && periodData.tp_type_kc_matrix) {
+                                Object.values(periodData.tp_type_kc_matrix).forEach(typeData => {
+                                    Object.values(typeData).forEach(counts => {
+                                        if (direction === 'inbound') {
+                                            kcCounts[period] += counts.inbound || 0;
+                                        } else if (direction === 'outbound') {
+                                            kcCounts[period] += counts.outbound || 0;
+                                        }
+                                    });
+                                });
+                            }
+                        });
+                    }
+                }
+                
+                const newDocData = window.trendsChartData.periods.map(period => docCounts[period] || 0);
+                const newKcData = window.trendsChartData.periods.map(period => Math.round(kcCounts[period] || 0));
+                
+                // Update chart
+                const ctx = document.getElementById('docKCTrendsChart');
+                if (ctx) {
+                    const chartInstance = Chart.getChart(ctx);
+                    if (chartInstance) {
+                        chartInstance.data.datasets[0].data = newDocData;
+                        chartInstance.data.datasets[2].data = newKcData;
+                        // Recalculate trend lines
+                        const calculateTrendLine = (data) => {
+                            const n = data.length;
+                            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                            for (let i = 0; i < n; i++) {
+                                sumX += i;
+                                sumY += data[i];
+                                sumXY += i * data[i];
+                                sumX2 += i * i;
+                            }
+                            const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                            const intercept = (sumY - slope * sumX) / n;
+                            return data.map((_, i) => Math.round(slope * i + intercept));
+                        };
+                        chartInstance.data.datasets[1].data = calculateTrendLine(newDocData);
+                        chartInstance.data.datasets[3].data = calculateTrendLine(newKcData);
+                        chartInstance.update();
+                    }
+                }
+            };
         </scr${'ipt>'}`;
         
         html += chartScript;
@@ -16146,12 +16806,34 @@ The data shows operational activity patterns across multiple dimensions...`;
                     <span class="info-icon">i
                         <div class="tooltip">
                             This section highlights your top 15 trading partners by document volume.
-                            It shows their total document counts, KC counts, and percentage of overall traffic.
-                            The table helps identify your most important trading relationships.
+                            Filter by direction to see top partners for inbound vs outbound traffic.
+                            It shows their document counts, KC counts, and percentage of overall traffic.
                             Focus on these key partners for business development and optimization.
                         </div>
                     </span>
                 </h4>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <!-- Direction Filter Buttons -->
+                    <div style="display: flex; gap: 4px; background: #f3f4f6; padding: 4px; border-radius: 8px;">
+                        <button id="tpvol-dir-both" class="tpvol-direction-btn" data-direction="both" 
+                            style="padding: 6px 12px; background: #3b82f6; color: white; border: none; 
+                            border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;"
+                            onclick="setTPVolumeDirection('both')">
+                            📊 Both
+                        </button>
+                        <button id="tpvol-dir-inbound" class="tpvol-direction-btn" data-direction="inbound" 
+                            style="padding: 6px 12px; background: transparent; color: #6b7280; border: none; 
+                            border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;"
+                            onclick="setTPVolumeDirection('inbound')">
+                            📥 Inbound
+                        </button>
+                        <button id="tpvol-dir-outbound" class="tpvol-direction-btn" data-direction="outbound" 
+                            style="padding: 6px 12px; background: transparent; color: #6b7280; border: none; 
+                            border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;"
+                            onclick="setTPVolumeDirection('outbound')">
+                            📤 Outbound
+                        </button>
+                    </div>
                 ${window.idCrossReference ? `
                 <div style="background: #f3f4f6; padding: 4px; border-radius: 8px; display: flex; gap: 4px;">
                     <span style="padding: 6px 8px; color: #4b5563; font-size: 0.85em;">Display:</span>
@@ -16196,6 +16878,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                         ">Region</button>
                 </div>
                 ` : ''}
+                </div>
             </div>`;
         
         // Calculate KC totals by TP
@@ -16272,6 +16955,131 @@ The data shows operational activity patterns across multiple dimensions...`;
         }
         
         html += `</div>`;
+        
+        // Add script for direction filtering
+        html += `<scr${'ipt>'}
+        // Store TP volume data for direction filtering
+        window.tpVolumeData = {
+            docData: ${this.safeStringify(this.docData)},
+            docAnalysis: ${this.safeStringify(docAnalysis)},
+            currentDirection: 'both'
+        };
+        
+        // Function to update TP volume table based on direction
+        window.setTPVolumeDirection = function(direction) {
+            // Update button states
+            const buttons = document.querySelectorAll('.tpvol-direction-btn');
+            buttons.forEach(btn => {
+                if (btn.dataset.direction === direction) {
+                    btn.style.background = '#3b82f6';
+                    btn.style.color = 'white';
+                } else {
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#6b7280';
+                }
+            });
+            
+            // Store current direction
+            window.tpVolumeData.currentDirection = direction;
+            
+            // Calculate TP counts based on direction
+            const tpDocCounts = {};
+            const tpKcCounts = {};
+            
+            if (direction === 'both') {
+                // Use original data
+                Object.entries(window.tpVolumeData.docAnalysis.tp_document_counts).forEach(([tp, count]) => {
+                    tpDocCounts[tp] = count;
+                });
+                
+                // Calculate KC totals
+                if (window.tpVolumeData.docData) {
+                    Object.values(window.tpVolumeData.docData).forEach(periodData => {
+                        if (periodData.documents_by_tp) {
+                            Object.entries(periodData.documents_by_tp).forEach(([tp, data]) => {
+                                tpKcCounts[tp] = (tpKcCounts[tp] || 0) + (data.total_kcs || 0);
+                            });
+                        }
+                    });
+                }
+            } else {
+                // Calculate from docData based on direction
+                if (window.tpVolumeData.docData) {
+                    Object.values(window.tpVolumeData.docData).forEach(periodData => {
+                        if (periodData.tp_type_matrix) {
+                            Object.entries(periodData.tp_type_matrix).forEach(([tp, typeData]) => {
+                                Object.values(typeData).forEach(counts => {
+                                    if (direction === 'inbound') {
+                                        tpDocCounts[tp] = (tpDocCounts[tp] || 0) + (counts.inbound || 0);
+                                    } else if (direction === 'outbound') {
+                                        tpDocCounts[tp] = (tpDocCounts[tp] || 0) + (counts.outbound || 0);
+                                    }
+                                });
+                            });
+                        }
+                        if (periodData.tp_type_kc_matrix) {
+                            Object.entries(periodData.tp_type_kc_matrix).forEach(([tp, typeData]) => {
+                                Object.values(typeData).forEach(counts => {
+                                    if (direction === 'inbound') {
+                                        tpKcCounts[tp] = (tpKcCounts[tp] || 0) + (counts.inbound || 0);
+                                    } else if (direction === 'outbound') {
+                                        tpKcCounts[tp] = (tpKcCounts[tp] || 0) + (counts.outbound || 0);
+                                    }
+                                });
+                            });
+                        }
+                    });
+                }
+            }
+            
+            // Sort TPs by document count
+            const sortedTPs = Object.entries(tpDocCounts)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 15);
+            
+            const totalDocs = Object.values(tpDocCounts).reduce((sum, count) => sum + count, 0);
+            
+            // Update table
+            const table = document.getElementById('doc-tp-volume-table');
+            if (table && table.querySelector('tbody')) {
+                const tbody = table.querySelector('tbody');
+                tbody.innerHTML = '';
+                
+                sortedTPs.forEach(([tp, count], index) => {
+                    const percentage = totalDocs > 0 ? (count / totalDocs * 100).toFixed(1) : '0.0';
+                    const kcCount = tpKcCounts[tp] || 0;
+                    const rowStyle = index < 3 ? ' style="background-color: #f7fafc;"' : '';
+                    
+                    const row = document.createElement('tr');
+                    if (index < 3) row.style.backgroundColor = '#f7fafc';
+                    row.innerHTML = \`
+                        <td style="text-align: center; padding: 10px;">
+                            \${index < 3 ? '<strong>' + (index + 1) + '</strong>' : index + 1}
+                        </td>
+                        <td class="tp-id-cell" data-id="\${tp}" style="padding: 10px;"><strong>\${tp}</strong></td>
+                        <td style="text-align: right; padding: 10px;">\${count.toLocaleString()}</td>
+                        <td style="text-align: right; padding: 10px;">\${Math.round(kcCount).toLocaleString()}</td>
+                        <td style="text-align: center; padding: 10px;">
+                            <span style="font-weight: 600;">\${percentage}%</span>
+                        </td>
+                    \`;
+                    tbody.appendChild(row);
+                });
+                
+                // Update concentration info
+                const topTpsCount = sortedTPs.reduce((sum, [, count]) => sum + count, 0);
+                const topTpsPercentage = totalDocs > 0 ? (topTpsCount / totalDocs * 100).toFixed(1) : '0.0';
+                const infoBox = document.querySelector('.tp-doc-volume-wrapper .info-box');
+                if (infoBox) {
+                    infoBox.innerHTML = \`
+                        <strong>Concentration:</strong> Top \${sortedTPs.length} trading partners account for 
+                        \${topTpsPercentage}% of \${direction === 'both' ? 'all' : direction} documents
+                    \`;
+                }
+            }
+        };
+        </scr${'ipt>'}`;
+        
         return html;
     }
 
@@ -16814,12 +17622,33 @@ The data shows operational activity patterns across multiple dimensions...`;
                             <div class="tooltip">
                                 The TP-Document Type Matrix provides a comprehensive view of all trading partner and document type combinations.
                                 Each cell shows the total document count for that specific combination.
+                                Filter by direction to see inbound vs outbound document flows.
                                 The matrix includes search and filter capabilities to find specific patterns.
-                                Use this to analyze business relationships and document flow patterns.
                             </div>
                         </span>
                     </h4>
-                    <div style="display: flex; gap: 10px;">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <!-- Direction Filter Buttons -->
+                        <div style="display: flex; gap: 4px; background: #f3f4f6; padding: 4px; border-radius: 8px;">
+                            <button id="matrix-dir-both" class="matrix-direction-btn" data-direction="both" 
+                                style="padding: 6px 12px; background: #3b82f6; color: white; border: none; 
+                                border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;"
+                                onclick="setMatrixDirection('both')">
+                                📊 Both
+                            </button>
+                            <button id="matrix-dir-inbound" class="matrix-direction-btn" data-direction="inbound" 
+                                style="padding: 6px 12px; background: transparent; color: #6b7280; border: none; 
+                                border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;"
+                                onclick="setMatrixDirection('inbound')">
+                                📥 Inbound
+                            </button>
+                            <button id="matrix-dir-outbound" class="matrix-direction-btn" data-direction="outbound" 
+                                style="padding: 6px 12px; background: transparent; color: #6b7280; border: none; 
+                                border-radius: 6px; cursor: pointer; font-size: 0.85em; transition: all 0.2s;"
+                                onclick="setMatrixDirection('outbound')">
+                                📤 Outbound
+                            </button>
+                        </div>
                         <button onclick="exportTableData('tp-doc-matrix', 'json')" style="
                             background: #3182ce;
                             color: white;
@@ -17072,6 +17901,111 @@ The data shows operational activity patterns across multiple dimensions...`;
                     ${matrixSize > MAX_MATRIX_SIZE ? '<br><strong>Note:</strong> Showing top contributors only. Use export functions for complete data.' : ''}
                 </p>
             </div>`);
+        
+        // Add script for matrix direction filtering
+        htmlParts.push(`<scr${'ipt>'}
+        // Store matrix data for direction filtering
+        window.matrixData = {
+            docData: ${this.safeStringify(docData)},
+            currentDirection: 'both'
+        };
+        
+        // Function to update matrix based on direction
+        window.setMatrixDirection = function(direction) {
+            // Update button states
+            const buttons = document.querySelectorAll('.matrix-direction-btn');
+            buttons.forEach(btn => {
+                if (btn.dataset.direction === direction) {
+                    btn.style.background = '#3b82f6';
+                    btn.style.color = 'white';
+                } else {
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#6b7280';
+                }
+            });
+            
+            // Store current direction
+            window.matrixData.currentDirection = direction;
+            
+            // Rebuild matrix with direction filter
+            const allPeriodsMatrix = {};
+            const tpTotals = {};
+            const docTypeTotals = {};
+            
+            // Aggregate data based on direction
+            Object.values(window.matrixData.docData).forEach(periodData => {
+                if (periodData.tp_type_matrix) {
+                    Object.entries(periodData.tp_type_matrix).forEach(([tp, typeData]) => {
+                        if (!allPeriodsMatrix[tp]) allPeriodsMatrix[tp] = {};
+                        
+                        Object.entries(typeData).forEach(([docType, counts]) => {
+                            if (!allPeriodsMatrix[tp][docType]) {
+                                allPeriodsMatrix[tp][docType] = { total: 0 };
+                            }
+                            
+                            let value = 0;
+                            if (direction === 'both') {
+                                value = counts.total || 0;
+                            } else if (direction === 'inbound') {
+                                value = counts.inbound || 0;
+                            } else if (direction === 'outbound') {
+                                value = counts.outbound || 0;
+                            }
+                            
+                            allPeriodsMatrix[tp][docType].total += value;
+                            tpTotals[tp] = (tpTotals[tp] || 0) + value;
+                            docTypeTotals[docType] = (docTypeTotals[docType] || 0) + value;
+                        });
+                    });
+                }
+            });
+            
+            // Sort TPs and doc types
+            const sortedTPs = Object.entries(tpTotals)
+                .filter(([, total]) => total > 0)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 50)
+                .map(([tp]) => tp);
+            
+            const sortedDocTypes = Object.entries(docTypeTotals)
+                .filter(([, total]) => total > 0)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 30)
+                .map(([docType]) => docType);
+            
+            // Update matrix table
+            const table = document.querySelector('.matrix-table');
+            if (table && table.querySelector('tbody')) {
+                const tbody = table.querySelector('tbody');
+                tbody.innerHTML = '';
+                
+                // Add rows
+                sortedTPs.forEach(tp => {
+                    const row = document.createElement('tr');
+                    let rowHtml = '<td class="matrix-tp-cell tp-id-cell" data-id="' + tp + '"><strong>' + tp + '</strong></td>';
+                    
+                    sortedDocTypes.forEach(docType => {
+                        const value = allPeriodsMatrix[tp] && allPeriodsMatrix[tp][docType] ? 
+                            allPeriodsMatrix[tp][docType].total : 0;
+                        
+                        const maxValue = Math.max(...Object.values(allPeriodsMatrix).map(tpData =>
+                            Math.max(...Object.values(tpData).map(d => d.total || 0))
+                        ));
+                        const intensity = maxValue > 0 ? (value / maxValue) : 0;
+                        const bgColor = value > 0 ? 
+                            \`rgba(59, 130, 246, \${0.1 + intensity * 0.4})\` : 
+                            'transparent';
+                        
+                        rowHtml += '<td class="matrix-cell" style="background-color: ' + bgColor + ';">' + 
+                            (value > 0 ? value.toLocaleString() : '-') + '</td>';
+                    });
+                    
+                    row.innerHTML = rowHtml;
+                    tbody.appendChild(row);
+                });
+            }
+        };
+        </scr${'ipt>'}`);
         
         return htmlParts.join('');
         } catch (error) {

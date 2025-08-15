@@ -2,123 +2,167 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## Repository Overview
 
-This is a customer traffic data analysis toolkit consisting of web-based tools for analyzing and converting customer billing data. Despite the directory name "KC_CSV_Java", this is purely a JavaScript/HTML project with no Java components.
-
-## Key Components
-
-### Main Application
-- **customer_data_analyzer.html**: Primary analysis tool that processes customer Excel/CSV files and generates comprehensive reports with visualizations including:
-  - Overview dashboard with key metrics and insights
-  - Trading Partner (TP) analysis with ID cross-reference support
-  - Hub analysis with network performance metrics
-  - Document analysis by type
-  - Multi-year seasonality patterns
-  - Sortable data tables throughout
-  - ID Cross-Reference file support for mapping IDs to Names/Regions
-
-### Data Converters
-- **Classic_to_TG_Billing_format_converter.html**: Converts MS Classic CSV files to TG Billing XLSX format
-- **csv_to_xlsx_converter.html**: Converts TG CSV exports to structured XLSX with multiple sheets
-
-### Landing Page
-- **index.html**: Professional landing page with animated backgrounds and navigation to all tools
-
-### Configuration & Utilities
-- **js/config.js**: Centralized configuration including file validation rules, sheet mappings, chart colors, and analysis thresholds
-- **js/utils.js**: Common utility functions (debounce, formatBytes, formatNumber, etc.)
-
-## Key Commands
-
-### Running the Application
-
-```bash
-# Open main analyzer
-open customer_data_analyzer.html              # macOS
-xdg-open customer_data_analyzer.html         # Linux  
-start customer_data_analyzer.html            # Windows
-
-# Open converters
-open Classic_to_TG_Billing_format_converter.html
-open csv_to_xlsx_converter.html
-
-# Open landing page
-open index.html
-```
-
-### Development Commands
-
-No build system is configured. To verify JavaScript syntax:
-```bash
-# Check for syntax errors (requires Node.js)
-node -c customer_data_analyzer.html         # Check embedded JS
-node -c js/config.js                       # Check config module
-node -c js/utils.js                        # Check utilities
-```
+This is a client-side web application suite for customer data analysis and billing format conversion. All tools are standalone HTML files with embedded JavaScript - no build process or server required.
 
 ## Architecture
 
-### Data Processing Pipeline
-1. File Upload → Parse Excel/CSV data using XLSX.js/PapaParse
-2. Extract customer, date, amount, document, and trading partner information
-3. Calculate metrics (documents, kilocharacters)
-4. Generate visualizations using Chart.js
-5. Create HTML report in iframe with interactive elements
+### Application Structure
+- **Static HTML Applications**: Each tool is a self-contained HTML file with inline CSS and JavaScript
+- **Client-Side Processing**: All data processing happens in the browser for security and privacy
+- **No Backend**: No server, API, or database - completely browser-based
+- **External Dependencies**: Loaded via CDN (Chart.js, XLSX.js, PapaParse)
 
-### External Dependencies (CDN-loaded)
-- **XLSX.js** (v0.18.5): Excel file parsing and generation
-- **PapaParse** (v5.4.1): CSV parsing
-- **Chart.js** (v3.9.1): Data visualization
+### Main Applications
 
-### Expected Data Format
+1. **index.html**: Landing page and navigation hub
+   - Marketing/information site with links to all tools
+   - Contains embedded media (video tutorial, podcast)
+   - Responsive design with animations
 
-#### Main Data Files
-Customer data files should contain these sheets:
-- `Date_Summary`: Time-based analysis data
-- `Doc_Summary`: Document type summaries
-- `Hub_Summary`: Hub/network location data
-- `TP_Summary`: Trading partner summaries
-- `TP_Doc_Summary`: Trading partner by document type matrix
+2. **customer_data_analyzer.html**: Primary analytics platform
+   - Multi-file Excel/CSV processing
+   - 5 analysis views (Summary, Detail, Entity, Trading Partner, Map)
+   - Chart visualizations using Chart.js
+   - Export functionality to Excel/CSV
 
-Required columns:
-- `Customer`: Customer identifier (e.g., "KCC102")
-- `Invoice`: Invoice reference
-- `Amount`: Numeric amount value
-- `Date`: Date in various formats (MM/DD/YYYY, YYYY-MM-DD, etc.)
-- `Trade_Partner`: Trading partner identifier
-- `Document`: Document type
+3. **Classic_to_TG_Billing_format_converter.html**: Format converter
+   - Converts MS Classic CSV to TG Billing format
+   - Batch file processing
+   - Automatic data mapping
 
-#### ID Cross-Reference File (Optional)
-Excel or CSV file with columns:
-- `ID`: Trading partner or hub identifier
-- `Name`: Descriptive name for the ID
-- `Region`: Geographical region or business unit
+4. **csv_to_xlsx_converter.html**: CSV to Excel converter
+   - Converts TG CSV exports to structured Excel workbooks
+   - Multi-sheet organization
+   - Drag-and-drop interface
 
-### Report Generation Architecture
+5. **id_name_extractor.html**: Data extraction utility
+   - Extracts IDs and names from data files
+   - Pattern recognition capabilities
 
-The report is generated in an iframe (`reportFrame`) with:
-- Dynamic HTML generation with embedded CSS/JS
-- Cross-window communication for data passing
-- Export functions injected into iframe context
-- Table sorting functions dynamically generated per table
-- ID/Name/Region switching via `setTPDisplayMode()` function
+## Development Guidelines
 
-### Key Features
+### File Modifications
+- Each HTML file is completely self-contained - modify CSS and JavaScript within the file
+- Preserve inline structure when making changes
+- Test all changes directly by opening the HTML file in a browser
 
-1. **Performance Scorecard**: Combined health assessment using both document count and kilocharacter metrics
-2. **Multi-Year Seasonality**: Automatic year detection with filtering capabilities
-3. **Universal Table Sorting**: All tables support click-to-sort functionality
-4. **Efficiency Scoring**: KC per Document metrics with explanatory tooltips
-5. **Download All**: Batch download for multiple converted files (avoids ZIP security warnings)
-6. **ID Cross-Reference**: Dynamic switching between ID, Name, and Region display in tables
+### Adding Features
+- Keep all functionality client-side
+- Use existing CDN libraries where possible (Chart.js, XLSX.js, PapaParse already included)
+- Maintain browser compatibility - avoid cutting-edge APIs without fallbacks
 
-### Common Development Tasks
+### Data Processing
+- All file processing must happen in-browser using FileReader API
+- Never send data to external servers
+- Use Web Workers for heavy processing if needed to avoid UI blocking
 
-When modifying the analyzer:
-1. Main report generation logic is embedded in `customer_data_analyzer.html`
-2. Chart configurations are inline within the HTML report generation
-3. Table sorting is implemented via dynamically generated functions in the report
-4. Cross-reference functionality uses `window.idCrossReference` object
-5. The converter tools are self-contained single HTML files with embedded JavaScript
-6. Configuration changes should be made in `js/config.js` for consistency
+### Testing
+- No automated tests - manual testing by opening HTML files directly
+- Test with sample data files in `/example` directory
+- Verify Excel export/import functionality with actual Excel files
+- Check browser console for errors
+
+## Common Tasks
+
+### Run Locally
+Simply open any HTML file directly in a web browser. No server needed.
+
+### Deploy
+Copy HTML files to any web server or static hosting service. No build step required.
+
+### Debug
+Open browser Developer Tools (F12) and check Console for errors. All processing logic is visible in the HTML files.
+
+## Important Patterns
+
+### File Upload Pattern
+All tools use similar drag-and-drop and file input patterns:
+```javascript
+// Drag and drop handling
+element.addEventListener('dragover', (e) => e.preventDefault());
+element.addEventListener('drop', handleFileDrop);
+// File input handling  
+fileInput.addEventListener('change', handleFileSelect);
+```
+
+### Excel Processing
+Uses SheetJS (XLSX.js) library for reading/writing Excel files:
+```javascript
+// Read: XLSX.read(data, {type: 'binary'})
+// Write: XLSX.writeFile(workbook, filename)
+```
+
+### CSV Processing
+Uses PapaParse for CSV parsing:
+```javascript
+Papa.parse(file, { complete: (results) => processData(results.data) })
+```
+
+## Known Issues & Fixes
+
+### Special Characters in Company Names
+**Problem**: Apostrophes and quotes in company names were breaking JavaScript/HTML generation
+**Fixed in**: customer_data_analyzer.html
+**Solutions Implemented**:
+1. Added `escapeHtml()` helper function (line 10895) for HTML content
+2. Added `safeStringify()` method (line 3004) for JSON embedding in script tags
+3. Fixed script tag concatenation using template literals: `</scr${'ipt>'}`
+
+### Debug Code Removal
+**Completed**: Removed 67 console.log/console.error/console.warn statements
+**Status**: All debug code has been cleaned up
+
+## Error Handling Patterns
+
+### Safe HTML Embedding
+```javascript
+// Function to escape HTML special characters
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+```
+
+### Safe JSON Stringification for Script Tags
+```javascript
+safeStringify(obj) {
+    if (obj === null || obj === undefined) return 'null';
+    let jsonStr = JSON.stringify(obj);
+    // Escape </script> patterns to prevent breaking HTML parsing
+    jsonStr = jsonStr.replace(/<\/script>/gi, '<\\/script>');
+    return jsonStr;
+}
+```
+
+### Script Tag in Template Literals
+```javascript
+// Correct way to include script tags in template literals
+const html = `<scr${'ipt>'}console.log('safe');</scr${'ipt>'}`;
+// Never use: `<script>...</script>` directly in template literals
+```
+
+## Testing Checklist
+
+When modifying the code, test for:
+- [ ] Files with special characters in names (apostrophes, quotes, ampersands)
+- [ ] Large file processing (>10MB)
+- [ ] Multiple file batch processing
+- [ ] Export functionality (Excel generation)
+- [ ] Drag and drop functionality
+- [ ] Cross-browser compatibility (Chrome, Firefox, Edge, Safari)
+- [ ] Empty or malformed CSV files
+
+## Version Control
+
+Current Version: 3.0
+- All special character issues resolved
+- Debug code removed
+- Performance optimizations applied
+
+## Contact
+
+Created by Stephen Clarke

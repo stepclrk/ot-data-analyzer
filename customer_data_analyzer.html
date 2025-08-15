@@ -538,6 +538,91 @@
         </div>
     </div>
     
+    <!-- ID Cross-Reference Instructions Modal -->
+    <div id="xrefInstructionsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000;">
+        <div style="position: relative; max-width: 800px; margin: 50px auto; background: white; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+            <div style="padding: 30px;">
+                <button onclick="closeXrefInstructions()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">×</button>
+                <h2 style="margin-top: 0; color: #2d3748; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">How to Generate an ID Cross-Reference File</h2>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 10px;">Overview</h3>
+                    <p style="margin-bottom: 15px;">The ID Cross-Reference file helps enhance your reports by mapping EDI addresses to customer-friendly names and regional information. This file should be created in Excel and contain the following three columns:</p>
+                </div>
+                
+                <div style="margin-top: 20px; background: #f7fafc; padding: 20px; border-radius: 8px; border-left: 4px solid #3182ce;">
+                    <h3 style="color: #2d3748; margin-top: 0; margin-bottom: 15px;">Required Columns</h3>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #3182ce; margin-bottom: 5px;">1. ID (Column A)</h4>
+                        <p style="margin: 0; padding-left: 20px;">The EDI address of the Trading Partner or Hub (e.g., "12345678", "ABC123")</p>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #3182ce; margin-bottom: 5px;">2. Name (Column B)</h4>
+                        <p style="margin: 0; padding-left: 20px;">The customer-friendly version of the name (e.g., "Acme Corporation", "Global Logistics Hub")</p>
+                    </div>
+                    
+                    <div style="margin-bottom: 0;">
+                        <h4 style="color: #3182ce; margin-bottom: 5px;">3. Region (Column C)</h4>
+                        <p style="margin: 0; padding-left: 20px;">Where the Hub or Trading Partner is based. This can also be used for:</p>
+                        <ul style="margin-top: 10px; margin-bottom: 0; padding-left: 40px;">
+                            <li>Market designation (e.g., "North America", "EMEA", "APAC")</li>
+                            <li>Business unit (e.g., "Retail", "Manufacturing", "Distribution")</li>
+                            <li>Any other unique reference that helps categorize your partners</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; background: #fef5e7; padding: 15px; border-radius: 8px; border-left: 4px solid #f39c12;">
+                    <p style="margin: 0;"><strong>💡 Pro Tip:</strong> The Region field is particularly useful for Hubs as it allows you to split and analyze traffic volume by region, market, or other business-relevant categories.</p>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 10px;">Example Format</h3>
+                    <table style="width: 100%; border-collapse: collapse; background: white; border: 1px solid #e2e8f0;">
+                        <thead>
+                            <tr style="background: #f7fafc;">
+                                <th style="padding: 10px; border: 1px solid #e2e8f0; text-align: left;">ID</th>
+                                <th style="padding: 10px; border: 1px solid #e2e8f0; text-align: left;">Name</th>
+                                <th style="padding: 10px; border: 1px solid #e2e8f0; text-align: left;">Region</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #e2e8f0;">12345678</td>
+                                <td style="padding: 10px; border: 1px solid #e2e8f0;">Walmart Stores Inc</td>
+                                <td style="padding: 10px; border: 1px solid #e2e8f0;">North America</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #e2e8f0;">HUB001</td>
+                                <td style="padding: 10px; border: 1px solid #e2e8f0;">European Distribution Hub</td>
+                                <td style="padding: 10px; border: 1px solid #e2e8f0;">EMEA</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #e2e8f0;">ABC789</td>
+                                <td style="padding: 10px; border: 1px solid #e2e8f0;">Target Corporation</td>
+                                <td style="padding: 10px; border: 1px solid #e2e8f0;">Retail</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 10px;">Supported File Formats</h3>
+                    <ul style="list-style-type: disc; margin-left: 30px;">
+                        <li>Excel files (.xlsx, .xls, .xlsm)</li>
+                        <li>CSV files (.csv)</li>
+                    </ul>
+                </div>
+                
+                <div style="margin-top: 20px; text-align: center;">
+                    <button onclick="closeXrefInstructions()" style="padding: 10px 30px; background: #3182ce; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Map Instructions Modal -->
     <div id="mapInstructionsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000;">
         <div style="position: relative; max-width: 800px; margin: 50px auto; background: white; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
@@ -1411,7 +1496,7 @@
             </div>
             
             <div class="xref-upload-section" style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
-                <h3 style="margin-top: 0; color: #2d3748;">ID Cross-Reference File (Optional)</h3>
+                <h3 style="margin-top: 0; color: #2d3748;">ID Cross-Reference File (Optional) <a href="#" onclick="showXrefInstructions(); return false;" style="font-size: 14px; font-weight: normal; color: #3182ce; text-decoration: none; margin-left: 10px;">How do I generate?</a></h3>
                 <p style="color: #4a5568; margin-bottom: 15px;">Upload a file containing ID, Name, and Region columns for cross-referencing</p>
                 <div class="upload-area" id="xrefUploadArea" style="padding: 15px; background: white;">
                     <p>Drag and drop cross-reference file here or click to select</p>
@@ -17641,6 +17726,14 @@ function showMapInstructions() {
  */
 function closeMapInstructions() {
     document.getElementById('mapInstructionsModal').style.display = 'none';
+}
+
+function showXrefInstructions() {
+    document.getElementById('xrefInstructionsModal').style.display = 'block';
+}
+
+function closeXrefInstructions() {
+    document.getElementById('xrefInstructionsModal').style.display = 'none';
 }
 
 

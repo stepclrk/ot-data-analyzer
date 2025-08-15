@@ -1,124 +1,78 @@
-# CLAUDE.md
+# OT Data Analyzer
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+A comprehensive suite of client-side web applications for analyzing and converting customer billing data. All processing happens securely in your browser - your data never leaves your computer.
 
-## Project Overview
+## 🚀 Quick Start
 
-This is a customer traffic data analysis toolkit consisting of web-based tools for analyzing and converting customer billing data. Despite the directory name "KC_CSV_Java", this is purely a JavaScript/HTML project with no Java components.
+Simply open any HTML file in your web browser. No installation or server required!
 
-## Key Components
+- **Main Application**: Open `index.html` for the landing page
+- **Direct Access**: Open any tool's HTML file directly
 
-### Main Application
-- **customer_data_analyzer.html**: Primary analysis tool that processes customer Excel/CSV files and generates comprehensive reports with visualizations including:
-  - Overview dashboard with key metrics and insights
-  - Trading Partner (TP) analysis with ID cross-reference support
-  - Hub analysis with network performance metrics
-  - Document analysis by type
-  - Multi-year seasonality patterns
-  - Sortable data tables throughout
-  - ID Cross-Reference file support for mapping IDs to Names/Regions
+## 📊 Available Tools
 
-### Data Converters
-- **Classic_to_TG_Billing_format_converter.html**: Converts MS Classic CSV files to TG Billing XLSX format
-- **csv_to_xlsx_converter.html**: Converts TG CSV exports to structured XLSX with multiple sheets
+### 1. Customer Data Analyzer
+**File**: `customer_data_analyzer.html`
+- Process multiple billing CSV files simultaneously
+- Generate 5 comprehensive analysis views
+- Interactive maps and visualizations
+- Export results to multi-sheet Excel files
+- AI-powered insights and trend detection
 
-### Landing Page
-- **index.html**: Professional landing page with animated backgrounds and navigation to all tools
+### 2. MS Classic to TG Billing Converter
+**File**: `Classic_to_TG_Billing_format_converter.html`
+- Convert MS Classic CSV files to TG Billing XLSX format
+- Batch processing support
+- Automatic date extraction and formatting
+- Structured Excel output with 5 summary sheets
 
-### Configuration & Utilities
-- **js/config.js**: Centralized configuration including file validation rules, sheet mappings, chart colors, and analysis thresholds
-- **js/utils.js**: Common utility functions (debounce, formatBytes, formatNumber, etc.)
+### 3. CSV to Excel Converter
+**File**: `csv_to_xlsx_converter.html`
+- Convert TG CSV exports to organized Excel workbooks
+- Drag & drop interface
+- Automatic section detection
+- Multi-sheet organization
 
-## Key Commands
+### 4. ID Name Extractor
+**File**: `id_name_extractor.html`
+- Extract ID/Name pairs from CSV data
+- Two-pass processing for RECV/SENT directions
+- Duplicate removal
+- Excel export with ID, Name, Region columns
 
-### Running the Application
+## 🔒 Security & Privacy
 
-```bash
-# Open main analyzer
-open customer_data_analyzer.html              # macOS
-xdg-open customer_data_analyzer.html         # Linux  
-start customer_data_analyzer.html            # Windows
+- **100% Client-Side**: All processing happens in your browser
+- **No Data Upload**: Your files never leave your computer
+- **No Server Required**: Works offline once loaded
+- **Open Source**: Inspect the code anytime
 
-# Open converters
-open Classic_to_TG_Billing_format_converter.html
-open csv_to_xlsx_converter.html
+## 💻 System Requirements
 
-# Open landing page
-open index.html
-```
+- Modern web browser (Chrome, Firefox, Edge, Safari)
+- JavaScript enabled
+- Sufficient RAM for large file processing (recommended 4GB+)
 
-### Development Commands
+## 🛠️ Technical Details
 
-No build system is configured. To verify JavaScript syntax:
-```bash
-# Check for syntax errors (requires Node.js)
-node -c customer_data_analyzer.html         # Check embedded JS
-node -c js/config.js                       # Check config module
-node -c js/utils.js                        # Check utilities
-```
+- **Built With**: Pure HTML, CSS, and JavaScript
+- **Libraries Used**:
+  - PapaParse for CSV parsing
+  - SheetJS (XLSX) for Excel file generation
+  - All libraries loaded from CDN
 
-## Architecture
+## 📝 Version
 
-### Data Processing Pipeline
-1. File Upload → Parse Excel/CSV data using XLSX.js/PapaParse
-2. Extract customer, date, amount, document, and trading partner information
-3. Calculate metrics (documents, kilocharacters)
-4. Generate visualizations using Chart.js
-5. Create HTML report in iframe with interactive elements
+Current Version: 3.0
 
-### External Dependencies (CDN-loaded)
-- **XLSX.js** (v0.18.5): Excel file parsing and generation
-- **PapaParse** (v5.4.1): CSV parsing
-- **Chart.js** (v3.9.1): Data visualization
+## 👤 Author
 
-### Expected Data Format
+Created by Stephen Clarke
 
-#### Main Data Files
-Customer data files should contain these sheets:
-- `Date_Summary`: Time-based analysis data
-- `Doc_Summary`: Document type summaries
-- `Hub_Summary`: Hub/network location data
-- `TP_Summary`: Trading partner summaries
-- `TP_Doc_Summary`: Trading partner by document type matrix
+## 📄 License
 
-Required columns:
-- `Customer`: Customer identifier (e.g., "KCC102")
-- `Invoice`: Invoice reference
-- `Amount`: Numeric amount value
-- `Date`: Date in various formats (MM/DD/YYYY, YYYY-MM-DD, etc.)
-- `Trade_Partner`: Trading partner identifier
-- `Document`: Document type
+All rights reserved.
 
-#### ID Cross-Reference File (Optional)
-Excel or CSV file with columns:
-- `ID`: Trading partner or hub identifier
-- `Name`: Descriptive name for the ID
-- `Region`: Geographical region or business unit
+---
 
-### Report Generation Architecture
-
-The report is generated in an iframe (`reportFrame`) with:
-- Dynamic HTML generation with embedded CSS/JS
-- Cross-window communication for data passing
-- Export functions injected into iframe context
-- Table sorting functions dynamically generated per table
-- ID/Name/Region switching via `setTPDisplayMode()` function
-
-### Key Features
-
-1. **Performance Scorecard**: Combined health assessment using both document count and kilocharacter metrics
-2. **Multi-Year Seasonality**: Automatic year detection with filtering capabilities
-3. **Universal Table Sorting**: All tables support click-to-sort functionality
-4. **Efficiency Scoring**: KC per Document metrics with explanatory tooltips
-5. **Download All**: Batch download for multiple converted files (avoids ZIP security warnings)
-6. **ID Cross-Reference**: Dynamic switching between ID, Name, and Region display in tables
-
-### Common Development Tasks
-
-When modifying the analyzer:
-1. Main report generation logic is embedded in `customer_data_analyzer.html`
-2. Chart configurations are inline within the HTML report generation
-3. Table sorting is implemented via dynamically generated functions in the report
-4. Cross-reference functionality uses `window.idCrossReference` object
-5. The converter tools are self-contained single HTML files with embedded JavaScript
-6. Configuration changes should be made in `js/config.js` for consistency
+For detailed developer documentation, see [CLAUDE.md](./CLAUDE.md)

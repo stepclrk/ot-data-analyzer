@@ -189,6 +189,40 @@
             border-color: #4CAF50;
             background-color: #f0f8f0;
         }
+        .upload-notification {
+            margin: 15px 0;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .upload-notification.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            display: block;
+        }
+        
+        .upload-notification.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            display: block;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         .file-list {
             margin: 20px 0;
         }
@@ -1495,6 +1529,8 @@
                 <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.xlsm,.csv" style="display: none;">
             </div>
             
+            <div id="uploadNotification" class="upload-notification"></div>
+            
             <div class="xref-upload-section" style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
                 <h3 style="margin-top: 0; color: #2d3748;">ID Cross-Reference File (Optional) <a href="#" onclick="showXrefInstructions(); return false;" style="font-size: 14px; font-weight: normal; color: #3182ce; text-decoration: none; margin-left: 10px;">How do I generate?</a></h3>
                 <p style="color: #4a5568; margin-bottom: 15px;">Upload a file containing ID, Name, and Region columns for cross-referencing</p>
@@ -1912,6 +1948,18 @@ function handleFiles(files) {
     // Show errors if any
     if (errors.length > 0) {
         showStatus(errors.join(' | '), 'error');
+        
+        // Show error notification under upload box
+        const notification = document.getElementById('uploadNotification');
+        if (notification) {
+            notification.className = 'upload-notification error';
+            notification.textContent = `✗ ${errors[0]}`; // Show first error
+            
+            // Auto-hide notification after 5 seconds
+            setTimeout(() => {
+                notification.className = 'upload-notification';
+            }, 5000);
+        }
     }
     
     // Add valid files
@@ -1927,7 +1975,22 @@ function handleFiles(files) {
         analyzeBtn.disabled = uploadedFiles.length === 0;
     }
     
-    // Show success message
+    // Show success notification under upload box
+    const notification = document.getElementById('uploadNotification');
+    if (notification) {
+        if (validFiles.length > 0) {
+            const fileNames = validFiles.map(f => f.name).join(', ');
+            notification.className = 'upload-notification success';
+            notification.textContent = `✓ Successfully loaded ${validFiles.length} file(s): ${fileNames}`;
+            
+            // Auto-hide notification after 5 seconds
+            setTimeout(() => {
+                notification.className = 'upload-notification';
+            }, 5000);
+        }
+    }
+    
+    // Show success message in status bar too
     if (validFiles.length > 0) {
         showStatus(`Added ${validFiles.length} file(s) successfully`, 'success');
     }

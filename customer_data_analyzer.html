@@ -7429,8 +7429,15 @@ The data shows operational activity patterns across multiple dimensions...`;
                 }
             });
             
+            // Get customer name from parent window analyzer
+            const customerName = parent.window.analyzer && parent.window.analyzer.customerName 
+                ? parent.window.analyzer.customerName.replace(/[^a-z0-9]/gi, '_') 
+                : 'Customer';
+            
+            // Add timestamp
+            const timestamp = '_' + new Date().toISOString().split('T')[0];
+            
             let content, filename;
-            const timestamp = new Date().toISOString().split('T')[0];
             
             if (format === 'json') {
                 // Convert to JSON format
@@ -7443,7 +7450,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 });
                 
                 content = JSON.stringify(jsonData, null, 2);
-                filename = 'tp-performance-' + currentView + '-' + timestamp + '.json';
+                filename = customerName + '_-_Trading_Partner_Monthly_Performance' + timestamp + '.json';
             } else if (format === 'csv') {
                 // Convert to CSV format
                 const csvRows = [headers.join(',')];
@@ -7456,7 +7463,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 });
                 
                 content = csvRows.join('\\n');
-                filename = 'tp-performance-' + currentView + '-' + timestamp + '.csv';
+                filename = customerName + '_-_Trading_Partner_Monthly_Performance' + timestamp + '.csv';
             }
             
             // Download file
@@ -8697,11 +8704,11 @@ The data shows operational activity patterns across multiple dimensions...`;
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h5 style="color: #2d3748; margin: 0; font-size: 1em;">📊 Hub Performance Details</h5>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <button onclick="parent.window.analyzer.exportTableToJSON('hubPerformanceTable', 'hub_performance.json')" 
+                        <button onclick="parent.window.analyzer.exportTableToJSON('hubPerformanceTable', 'Hub_Performance_Details.json')" 
                                 style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
                             Export to JSON
                         </button>
-                        <button onclick="parent.window.analyzer.exportTableToCSV('hubPerformanceTable', 'hub_performance.csv')" 
+                        <button onclick="parent.window.analyzer.exportTableToCSV('hubPerformanceTable', 'Hub_Performance_Details.csv')" 
                                 style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
                             Export to CSV
                         </button>
@@ -8836,11 +8843,11 @@ The data shows operational activity patterns across multiple dimensions...`;
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h5 style="color: #2d3748; margin: 0; font-size: 1em;">📄 Documents per Hub by Month</h5>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <button onclick="parent.window.analyzer.exportTableToJSON('hubDocsMonthlyTable', 'hub_docs_monthly.json')" 
+                        <button onclick="parent.window.analyzer.exportTableToJSON('hubDocsMonthlyTable', 'Documents_per_Hub_by_Month.json')" 
                                 style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
                             Export to JSON
                         </button>
-                        <button onclick="parent.window.analyzer.exportTableToCSV('hubDocsMonthlyTable', 'hub_docs_monthly.csv')" 
+                        <button onclick="parent.window.analyzer.exportTableToCSV('hubDocsMonthlyTable', 'Documents_per_Hub_by_Month.csv')" 
                                 style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
                             Export to CSV
                         </button>
@@ -8950,11 +8957,11 @@ The data shows operational activity patterns across multiple dimensions...`;
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h5 style="color: #2d3748; margin: 0; font-size: 1em;">📊 Kilocharacters per Hub by Month</h5>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <button onclick="parent.window.analyzer.exportTableToJSON('hubKCsMonthlyTable', 'hub_kcs_monthly.json')" 
+                        <button onclick="parent.window.analyzer.exportTableToJSON('hubKCsMonthlyTable', 'Kilocharacters_per_Hub_by_Month.json')" 
                                 style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
                             Export to JSON
                         </button>
-                        <button onclick="parent.window.analyzer.exportTableToCSV('hubKCsMonthlyTable', 'hub_kcs_monthly.csv')" 
+                        <button onclick="parent.window.analyzer.exportTableToCSV('hubKCsMonthlyTable', 'Kilocharacters_per_Hub_by_Month.csv')" 
                                 style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
                             Export to CSV
                         </button>
@@ -11523,8 +11530,15 @@ The data shows operational activity patterns across multiple dimensions...`;
                 }
             }
             
-            const date = new Date().toISOString().split('T')[0];
-            let filename = 'TPR_Monthly_Volumes_' + date;
+            // Get customer name from parent window analyzer
+            const customerName = parent.window.analyzer && parent.window.analyzer.customerName 
+                ? parent.window.analyzer.customerName.replace(/[^a-z0-9]/gi, '_') 
+                : 'Customer';
+            
+            // Add timestamp
+            const timestamp = '_' + new Date().toISOString().split('T')[0];
+            
+            let filename = customerName + '_-_Monthly_Volumes_by_Trading_Partner' + timestamp;
             let blob;
             
             if (format === 'json') {
@@ -11941,11 +11955,11 @@ The data shows operational activity patterns across multiple dimensions...`;
                             style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
                         Clear Filters
                     </button>
-                    <button onclick="parent.window.analyzer.exportTableToJSON('mapTable', 'map_analysis.json')" 
+                    <button onclick="parent.window.analyzer.exportTableToJSON('mapTable', 'Map_and_Trading_Partner_List.json')" 
                             style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
                         Export to JSON
                     </button>
-                    <button onclick="parent.window.analyzer.exportTableToCSV('mapTable', 'map_analysis.csv')" 
+                    <button onclick="parent.window.analyzer.exportTableToCSV('mapTable', 'Map_and_Trading_Partner_List.csv')" 
                             style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
                         Export to CSV
                     </button>
@@ -15766,8 +15780,15 @@ The data shows operational activity patterns across multiple dimensions...`;
                 }
             });
             
+            // Get customer name from parent window analyzer
+            const customerName = parent.window.analyzer && parent.window.analyzer.customerName 
+                ? parent.window.analyzer.customerName.replace(/[^a-z0-9]/gi, '_') 
+                : 'Customer';
+            
+            // Add timestamp
+            const timestamp = '_' + new Date().toISOString().split('T')[0];
+            
             let content, filename;
-            const timestamp = new Date().toISOString().split('T')[0];
             
             if (format === 'json') {
                 // Convert to JSON format
@@ -15780,7 +15801,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 });
                 
                 content = JSON.stringify(jsonData, null, 2);
-                filename = 'partner-seasonality-' + timestamp + '.json';
+                filename = customerName + '_-_Partner_Seasonality_Patterns_-_All_Trading_Partners' + timestamp + '.json';
             } else if (format === 'csv') {
                 // Convert to CSV format
                 const csvRows = [headers.join(',')];
@@ -15793,7 +15814,7 @@ The data shows operational activity patterns across multiple dimensions...`;
                 });
                 
                 content = csvRows.join('\\n');
-                filename = 'partner-seasonality-' + timestamp + '.csv';
+                filename = customerName + '_-_Partner_Seasonality_Patterns_-_All_Trading_Partners' + timestamp + '.csv';
             }
             
             // Download file
@@ -18159,6 +18180,13 @@ The data shows operational activity patterns across multiple dimensions...`;
             return;
         }
         
+        // Prepend customer name and append timestamp to filename
+        const customerName = this.customerName ? this.customerName.replace(/[^a-z0-9]/gi, '_') : 'Customer';
+        const timestamp = '_' + new Date().toISOString().split('T')[0];
+        const baseFilename = filename.replace(/\.(json|csv)$/i, '');
+        const extension = filename.match(/\.(json|csv)$/i)?.[0] || '';
+        const finalFilename = customerName + '_-_' + baseFilename + timestamp + extension;
+        
         const data = this.extractTableData(table);
         const jsonString = JSON.stringify(data, null, 2);
         
@@ -18166,7 +18194,7 @@ The data shows operational activity patterns across multiple dimensions...`;
         const blob = new Blob([jsonString], { type: 'application/json' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = filename;
+        link.download = finalFilename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -18191,6 +18219,13 @@ The data shows operational activity patterns across multiple dimensions...`;
             return;
         }
         
+        // Prepend customer name and append timestamp to filename
+        const customerName = this.customerName ? this.customerName.replace(/[^a-z0-9]/gi, '_') : 'Customer';
+        const timestamp = '_' + new Date().toISOString().split('T')[0];
+        const baseFilename = filename.replace(/\.(json|csv)$/i, '');
+        const extension = filename.match(/\.(json|csv)$/i)?.[0] || '';
+        const finalFilename = customerName + '_-_' + baseFilename + timestamp + extension;
+        
         const data = this.extractTableData(table);
         const csv = this.convertToCSV(data);
         
@@ -18198,7 +18233,7 @@ The data shows operational activity patterns across multiple dimensions...`;
         const blob = new Blob([csv], { type: 'text/csv' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = filename;
+        link.download = finalFilename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -18347,25 +18382,33 @@ async function analyzeFiles() {
                 let filename;
                 const date = new Date().toISOString().split('T')[0];
                 
+                // Get customer name from parent window analyzer
+                const customerName = parent.window.analyzer && parent.window.analyzer.customerName 
+                    ? parent.window.analyzer.customerName.replace(/[^a-z0-9]/gi, '_') 
+                    : 'Customer';
+                
+                // Add timestamp
+                const timestamp = '_' + date;
+                
                 // Get table data based on ID
                 if (tableId === 'summary-metrics') {
                     data = iframeWindow.exportSummaryMetrics();
-                    filename = 'Summary_Metrics_Comparison_' + date;
+                    filename = customerName + '_-_Summary_Metrics_Comparison' + timestamp;
                 } else if (tableId === 'tp-monthly-docs') {
                     data = iframeWindow.exportTPMonthlyDocs();
-                    filename = 'Trading_Partners_Monthly_Performance_' + date;
+                    filename = customerName + '_-_Trading_Partner_Monthly_Performance' + timestamp;
                 } else if (tableId === 'tp-monthly-kcs') {
                     data = iframeWindow.exportTPMonthlyKCs();
-                    filename = 'Trading_Partners_Monthly_KC_Performance_' + date;
+                    filename = customerName + '_-_Trading_Partner_Monthly_KC_Performance' + timestamp;
                 } else if (tableId === 'tp-doc-volume') {
                     data = iframeWindow.exportTPDocVolume();
-                    filename = 'Trading_Partners_Document_Volume_' + date;
+                    filename = customerName + '_-_All_Trading_Partners_by_Document_Volume' + timestamp;
                 } else if (tableId === 'tp-doc-types') {
                     data = iframeWindow.exportTPDocTypes();
-                    filename = 'Trading_Partners_Document_Types_' + date;
+                    filename = customerName + '_-_Complete_Document_Types_by_Trading_Partner' + timestamp;
                 } else if (tableId === 'tp-doc-matrix') {
                     data = iframeWindow.exportTPDocMatrix();
-                    filename = 'TP_Document_Type_Matrix_' + date;
+                    filename = customerName + '_-_TP-Document_Type_Matrix' + timestamp;
                 }
                 
                 if (!data || data.length === 0) return;

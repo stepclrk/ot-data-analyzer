@@ -2978,29 +2978,44 @@ class DynamicDataAnalyzer {
         }
         
         // Special handling for DOC and KCS columns
-        const docColumns = headers.filter(col => col.toUpperCase().includes('DOC'));
-        const kcsColumns = headers.filter(col => col.toUpperCase().includes('KCS'));
+        // Check if TOTAL-DOC and TOTAL-KCS already exist in the data
+        const hasTotalDoc = headers.some(col => col.toUpperCase() === 'TOTAL-DOC');
+        const hasTotalKcs = headers.some(col => col.toUpperCase() === 'TOTAL-KCS');
         
-        // Calculate DOC totals
-        let totalDoc = 0;
-        for (const col of docColumns) {
-            if (metrics.totals[col]) {
-                totalDoc += metrics.totals[col];
+        // If TOTAL-DOC doesn't exist, calculate it from other DOC columns
+        if (!hasTotalDoc) {
+            const docColumns = headers.filter(col => 
+                col.toUpperCase().includes('DOC') && 
+                col.toUpperCase() !== 'TOTAL-DOC'
+            );
+            
+            let totalDoc = 0;
+            for (const col of docColumns) {
+                if (metrics.totals[col]) {
+                    totalDoc += metrics.totals[col];
+                }
+            }
+            if (docColumns.length > 0) {
+                metrics.totals['TOTAL-DOC'] = totalDoc;
             }
         }
-        if (docColumns.length > 0) {
-            metrics.totals['TOTAL-DOC'] = totalDoc;
-        }
         
-        // Calculate KCS totals
-        let totalKcs = 0;
-        for (const col of kcsColumns) {
-            if (metrics.totals[col]) {
-                totalKcs += metrics.totals[col];
+        // If TOTAL-KCS doesn't exist, calculate it from other KCS columns
+        if (!hasTotalKcs) {
+            const kcsColumns = headers.filter(col => 
+                col.toUpperCase().includes('KCS') && 
+                col.toUpperCase() !== 'TOTAL-KCS'
+            );
+            
+            let totalKcs = 0;
+            for (const col of kcsColumns) {
+                if (metrics.totals[col]) {
+                    totalKcs += metrics.totals[col];
+                }
             }
-        }
-        if (kcsColumns.length > 0) {
-            metrics.totals['TOTAL-KCS'] = totalKcs;
+            if (kcsColumns.length > 0) {
+                metrics.totals['TOTAL-KCS'] = totalKcs;
+            }
         }
         
         return metrics;
@@ -5204,43 +5219,42 @@ The data shows operational activity patterns across multiple dimensions...`;
         const prevPeriod = sortedPeriods.length >= 2 ? sortedPeriods[sortedPeriods.length - 2] : null;
         const yearAgo = sortedPeriods.length >= 13 ? sortedPeriods[sortedPeriods.length - 13] : sortedPeriods[0];
         
-        // Sum up total documents only from Date_Summary sheet
-        for (const [sheetName, trends] of Object.entries(data.trends || {})) {
-            if (sheetName === 'Date_Summary' && trends.metric_trends && trends.metric_trends['TOTAL-DOC']) {
-                const docTrend = trends.metric_trends['TOTAL-DOC'];
-                const periods = trends.periods;
-                
-                if (periods.includes(currentPeriod)) {
-                    const idx = periods.indexOf(currentPeriod);
-                    insights.current_volume += docTrend[idx] || 0;
-                }
-                
-                if (prevPeriod && periods.includes(prevPeriod)) {
-                    const idx = periods.indexOf(prevPeriod);
-                    insights.prev_volume += docTrend[idx] || 0;
-                }
-                
-                if (periods.includes(yearAgo)) {
-                    const idx = periods.indexOf(yearAgo);
-                    insights.yoy_volume += docTrend[idx] || 0;
-                }
-                
-                // Calculate totals and averages
-                insights.total_volume = docTrend.reduce((a, b) => a + b, 0);
-                insights.period_count = docTrend.length;
-                insights.avg_volume = insights.period_count > 0 ? insights.total_volume / insights.period_count : 0;
-                
-                // Calculate average growth rate
-                const growthRates = [];
-                for (let i = 1; i < docTrend.length; i++) {
-                    if (docTrend[i-1] > 0) {
-                        const growth = ((docTrend[i] - docTrend[i-1]) / docTrend[i-1]) * 100;
-                        growthRates.push(growth);
-                    }
-                }
-                insights.avg_growth_rate = growthRates.length > 0 ? 
-                    growthRates.reduce((a, b) => a + b, 0) / growthRates.length : 0;
+        // Get data directly from Date_Summary sheet (no loop needed)
+        if (data.trends && data.trends.Date_Summary && data.trends.Date_Summary.metric_trends && data.trends.Date_Summary.metric_trends['TOTAL-DOC']) {
+            const trends = data.trends.Date_Summary;
+            const docTrend = trends.metric_trends['TOTAL-DOC'];
+            const periods = trends.periods;
+            
+            if (periods.includes(currentPeriod)) {
+                const idx = periods.indexOf(currentPeriod);
+                insights.current_volume = docTrend[idx] || 0;
             }
+            
+            if (prevPeriod && periods.includes(prevPeriod)) {
+                const idx = periods.indexOf(prevPeriod);
+                insights.prev_volume = docTrend[idx] || 0;
+            }
+            
+            if (periods.includes(yearAgo)) {
+                const idx = periods.indexOf(yearAgo);
+                insights.yoy_volume = docTrend[idx] || 0;
+            }
+            
+            // Calculate totals and averages
+            insights.total_volume = docTrend.reduce((a, b) => a + b, 0);
+            insights.period_count = docTrend.length;
+            insights.avg_volume = insights.period_count > 0 ? insights.total_volume / insights.period_count : 0;
+            
+            // Calculate average growth rate
+            const growthRates = [];
+            for (let i = 1; i < docTrend.length; i++) {
+                if (docTrend[i-1] > 0) {
+                    const growth = ((docTrend[i] - docTrend[i-1]) / docTrend[i-1]) * 100;
+                    growthRates.push(growth);
+                }
+            }
+            insights.avg_growth_rate = growthRates.length > 0 ? 
+                growthRates.reduce((a, b) => a + b, 0) / growthRates.length : 0;
         }
         
         // Calculate growth rates
@@ -5254,14 +5268,13 @@ The data shows operational activity patterns across multiple dimensions...`;
         
         // Calculate efficiency score
         let currentKcs = 0;
-        for (const [sheetName, trends] of Object.entries(data.trends || {})) {
-            if (sheetName === 'Date_Summary' && trends.metric_trends && trends.metric_trends['TOTAL-KCS']) {
-                const kcsTrend = trends.metric_trends['TOTAL-KCS'];
-                const periods = trends.periods;
-                if (periods.includes(currentPeriod)) {
-                    const idx = periods.indexOf(currentPeriod);
-                    currentKcs += kcsTrend[idx] || 0;
-                }
+        if (data.trends && data.trends.Date_Summary && data.trends.Date_Summary.metric_trends && data.trends.Date_Summary.metric_trends['TOTAL-KCS']) {
+            const trends = data.trends.Date_Summary;
+            const kcsTrend = trends.metric_trends['TOTAL-KCS'];
+            const periods = trends.periods;
+            if (periods.includes(currentPeriod)) {
+                const idx = periods.indexOf(currentPeriod);
+                currentKcs = kcsTrend[idx] || 0;
             }
         }
         
@@ -5554,26 +5567,25 @@ The data shows operational activity patterns across multiple dimensions...`;
         const prevPeriod = sortedPeriods.length >= 2 ? sortedPeriods[sortedPeriods.length - 2] : null;
         const yearAgo = sortedPeriods.length >= 13 ? sortedPeriods[sortedPeriods.length - 13] : sortedPeriods[0];
         
-        // Sum up total KCs only from Date_Summary sheet
-        for (const [sheetName, trends] of Object.entries(data.trends || {})) {
-            if (sheetName === 'Date_Summary' && trends.metric_trends && trends.metric_trends['TOTAL-KCS']) {
-                const kcTrend = trends.metric_trends['TOTAL-KCS'];
-                const periods = trends.periods;
-                
-                if (periods.includes(currentPeriod)) {
-                    const idx = periods.indexOf(currentPeriod);
-                    insights.current_kc += kcTrend[idx] || 0;
-                }
-                
-                if (prevPeriod && periods.includes(prevPeriod)) {
-                    const idx = periods.indexOf(prevPeriod);
-                    insights.prev_kc += kcTrend[idx] || 0;
-                }
-                
-                if (periods.includes(yearAgo)) {
-                    const idx = periods.indexOf(yearAgo);
-                    insights.yoy_kc += kcTrend[idx] || 0;
-                }
+        // Get data directly from Date_Summary sheet (no loop needed)
+        if (data.trends && data.trends.Date_Summary && data.trends.Date_Summary.metric_trends && data.trends.Date_Summary.metric_trends['TOTAL-KCS']) {
+            const trends = data.trends.Date_Summary;
+            const kcTrend = trends.metric_trends['TOTAL-KCS'];
+            const periods = trends.periods;
+            
+            if (periods.includes(currentPeriod)) {
+                const idx = periods.indexOf(currentPeriod);
+                insights.current_kc = kcTrend[idx] || 0;
+            }
+            
+            if (prevPeriod && periods.includes(prevPeriod)) {
+                const idx = periods.indexOf(prevPeriod);
+                insights.prev_kc = kcTrend[idx] || 0;
+            }
+            
+            if (periods.includes(yearAgo)) {
+                const idx = periods.indexOf(yearAgo);
+                insights.yoy_kc = kcTrend[idx] || 0;
             }
         }
         
@@ -5610,16 +5622,15 @@ The data shows operational activity patterns across multiple dimensions...`;
         }
         
         // Calculate KC per document ratio
-        for (const [sheetName, trends] of Object.entries(data.trends || {})) {
-            if (sheetName === 'Date_Summary' && trends.metric_trends && trends.metric_trends['TOTAL-DOC']) {
-                const docTrend = trends.metric_trends['TOTAL-DOC'];
-                const periods = trends.periods;
-                if (periods.includes(currentPeriod)) {
-                    const idx = periods.indexOf(currentPeriod);
-                    const currentDocs = docTrend[idx] || 0;
-                    if (currentDocs > 0) {
-                        insights.kc_per_doc = insights.current_kc / currentDocs;
-                    }
+        if (data.trends && data.trends.Date_Summary && data.trends.Date_Summary.metric_trends && data.trends.Date_Summary.metric_trends['TOTAL-DOC']) {
+            const trends = data.trends.Date_Summary;
+            const docTrend = trends.metric_trends['TOTAL-DOC'];
+            const periods = trends.periods;
+            if (periods.includes(currentPeriod)) {
+                const idx = periods.indexOf(currentPeriod);
+                const currentDocs = docTrend[idx] || 0;
+                if (currentDocs > 0) {
+                    insights.kc_per_doc = insights.current_kc / currentDocs;
                 }
             }
         }
